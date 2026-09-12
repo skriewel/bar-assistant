@@ -206,12 +206,14 @@ Route::middleware($apiMiddleware)->group(function () {
         Route::delete('/{id}', [CocktailMethodController::class, 'delete']);
     });
 
-    Route::prefix('notes')->middleware(['ability:*'])->group(function () {
-        Route::get('/', [NoteController::class, 'index']);
-        Route::post('/', [NoteController::class, 'store']);
-        Route::get('/{id}', [NoteController::class, 'show'])->name('notes.show');
-        Route::delete('/{id}', [NoteController::class, 'delete']);
-    });
+    Route::prefix('notes')
+        ->middleware(['ability:*', EnsureRequestHasBarQuery::class])
+        ->group(function () {
+            Route::get('/', [NoteController::class, 'index']);
+            Route::post('/', [NoteController::class, 'store']);
+            Route::get('/{id}', [NoteController::class, 'show'])->name('notes.show');
+            Route::delete('/{id}', [NoteController::class, 'delete']);
+        });
 
     Route::prefix('collections')->middleware(['ability:*'])->group(function () {
         Route::get('/', [CollectionController::class, 'index'])->middleware(EnsureRequestHasBarQuery::class);

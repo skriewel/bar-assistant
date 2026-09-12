@@ -84,6 +84,10 @@ class NoteController extends Controller
             default => throw new \InvalidArgumentException('Invalid resource type'),
         };
 
+        if ($resourceModel->bar_id !== bar()->id) {
+            abort(404);
+        }
+
         if ($request->user()->cannot('addNote', $resourceModel)) {
             abort(403);
         }
