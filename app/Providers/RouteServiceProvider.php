@@ -37,6 +37,10 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/custom_taps.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
@@ -44,8 +48,6 @@ class RouteServiceProvider extends ServiceProvider
 
     /**
      * Configure the rate limiters for the application.
-     *
-     * @return void
      */
     protected function configureRateLimiting()
     {
@@ -61,7 +63,7 @@ class RouteServiceProvider extends ServiceProvider
 
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
-        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id ?: $request->ip()));
 
         RateLimiter::for('forgot-password', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
     }
