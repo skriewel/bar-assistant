@@ -26,7 +26,6 @@ final class NoteQueryFilter extends QueryBuilder
                 }),
             ])
             ->defaultSort('created_at')
-            ->allowedSorts('created_at')
-            ->where('user_id', $this->request->user()->id);
+            ->allowedSorts('created_at');
     }
 }
