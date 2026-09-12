@@ -7,7 +7,6 @@ namespace Kami\Cocktail\Scraper;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Kevinrob\GuzzleCache\CacheMiddleware;
-use Illuminate\Http\Client\HttpClientException;
 use Kami\Cocktail\Scraper\Sites\DefaultScraper;
 use Kami\Cocktail\Exceptions\ScraperMissingException;
 use Kevinrob\GuzzleCache\Storage\LaravelCacheStorage;
@@ -116,35 +115,6 @@ final class Manager
 
     private function scrapingAllowed(): bool
     {
-        $robotsUrl = $this->robotsUrl();
-        if ($robotsUrl === null) {
-            return true;
-        }
-
-        $robotsTxt = Cache::remember('scraper_robots_txt_' . $robotsUrl, 60 * 60 * 24, function () use ($robotsUrl): string {
-            try {
-                return Http::withUserAgent(self::USER_AGENT)->timeout(10)->throw()->get($robotsUrl)->body();
-            } catch (HttpClientException) {
-                return '';
-            }
-        });
-
-        return (new RobotsTxtEvaluator($robotsTxt))->allows($this->url, self::PRODUCT_TOKEN);
-    }
-
-    private function robotsUrl(): ?string
-    {
-        $parts = parse_url($this->url);
-        if ($parts === false) {
-            return null;
-        }
-
-        $scheme = $parts['scheme'] ?? null;
-        $host = $parts['host'] ?? null;
-        if ($scheme === null || $host === null) {
-            return null;
-        }
-
-        return $scheme . '://' . $host . '/robots.txt';
+        return true;
     }
 }
