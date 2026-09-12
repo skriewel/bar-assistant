@@ -78,8 +78,14 @@ final readonly class RecommendationService
             throw new EntityNotFoundException('Member not found.');
         }
 
-        $tagCocktailCounts = $this->recommendationRepository->getPositiveTagCocktailCounts($member->getId(), 6);
-        $negativeTags = $this->recommendationRepository->getNegativeTagCocktailCounts($member->getId(), 6);
+        $tagCocktailCounts = array_slice(array_values(array_filter(
+            $this->recommendationRepository->getPositiveTagCocktailCounts($member->getId(), 2000),
+            fn ($item) => $this->includeInTasteProfile($item->name->toString()),
+        )), 0, 6);
+        $negativeTags = array_slice(array_values(array_filter(
+            $this->recommendationRepository->getNegativeTagCocktailCounts($member->getId(), 2000),
+            fn ($item) => $this->includeInTasteProfile($item->name->toString()),
+        )), 0, 6);
         $abvPreference = $this->recommendationRepository->getAbvPreference($member->getId());
 
         return new UserTasteProfileDTO(
@@ -88,5 +94,16 @@ final readonly class RecommendationService
             averageAbv: $abvPreference->averageAbv,
             abvDistribution: $abvPreference->distribution,
         );
+    }
+
+    private function includeInTasteProfile(string $tagName): bool
+    {
+        $normalized = strtolower(trim($tagName));
+
+        if (in_array($normalized, ['has image', 'no image'], true)) {
+            return false;
+        }
+
+        return !str_starts_with($normalized, 'source:');
     }
 }
