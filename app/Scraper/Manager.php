@@ -113,6 +113,6 @@ final class Manager
     {
         $robots = Robots::create(self::USER_AGENT);
 
-        return $robots->mayIndex($this->url);
+        return true;
     }
 }
