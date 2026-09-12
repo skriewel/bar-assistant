@@ -42,23 +42,80 @@ class CocktailPriceResource extends JsonResource
     public function toArray($request)
     {
         $prices = $this->cocktail->ingredients->map(function (CocktailIngredient $cocktailIngredient) {
-            $minIngredientPrice = $cocktailIngredient->getMinConvertedPriceInCategory($this->priceCategory);
-            if ($minIngredientPrice === null) {
+            $convertedPrices = $cocktailIngredient
+                ->ingredient
+                ->getPricesWithConvertedUnits($cocktailIngredient->units);
+
+            $best = $convertedPrices
+                ->map(function ($ingredientPrice) use ($cocktailIngredient) {
+                    $pricePerUse = $ingredientPrice
+                        ->getPricePerUnit($cocktailIngredient->units)
+                        ->multipliedBy((string) $cocktailIngredient->amount);
+
+                    return [
+                        'ingredient_price' => $ingredientPrice,
+                        'price_per_use' => $pricePerUse,
+                    ];
+                })
+                ->sortBy(fn ($row) => $row['price_per_use']->getAmount()->toFloat())
+                ->first();
+
+            if ($best === null) {
                 return null;
             }
 
+            $ingredientPrice = $best['ingredient_price'];
+
+            $pricePerUse = new Price(
+                $best['price_per_use']->to(new DefaultContext(), RoundingMode::DOWN)
+            );
+
             return [
-                'units' => $minIngredientPrice->getAmount()->units,
+                'units' => $ingredientPrice->getAmount()->units,
                 'ingredient' => new IngredientBasicResource($cocktailIngredient->ingredient),
-                'price_per_unit' => new PriceResource(new Price($minIngredientPrice->getPricePerUnit($cocktailIngredient->units)->to(new DefaultContext(), RoundingMode::DOWN))),
-                'price_per_use' => new PriceResource(new Price($cocktailIngredient->getConvertedPricePerUse($this->priceCategory)->to(new DefaultContext(), RoundingMode::DOWN))),
+                'price_category' => new PriceCategoryResource($ingredientPrice->priceCategory),
+                'price_per_unit' => new PriceResource(new Price(
+                    $ingredientPrice
+                        ->getPricePerUnit($cocktailIngredient->units)
+                        ->to(new DefaultContext(), RoundingMode::DOWN)
+                )),
+                'price_per_use' => new PriceResource($pricePerUse),
+                '_price_per_use' => $pricePerUse,
             ];
         })->filter()->values();
 
+        $totalMoney = null;
+
+        foreach ($prices as $row) {
+            $money = $row['_price_per_use']->getMoney();
+            $totalMoney = $totalMoney === null
+                ? $money
+                : $totalMoney->plus($money);
+        }
+
+        $prices = $prices->map(function (array $row) {
+            unset($row['_price_per_use']);
+
+            return $row;
+        });
+
         return [
             'missing_prices_count' => $this->cocktail->ingredients->count() - $prices->count(),
-            'price_category' => new PriceCategoryResource($this->priceCategory),
-            'total_price' => new PriceResource(new Price($this->cocktail->calculatePrice($this->priceCategory))),
+
+            // Synthetic category so the existing Salt Rim UI still has a category title.
+            'price_category' => [
+                'id' => 0,
+                'name' => 'Best available',
+                'currency' => $totalMoney?->getCurrency()->getCurrencyCode() ?? 'EUR',
+                'description' => 'Cheapest available price for each ingredient across all price categories',
+            ],
+
+            'total_price' => $totalMoney
+                ? new PriceResource(new Price(
+                    $totalMoney->to(new DefaultContext(), RoundingMode::DOWN)
+                ))
+                : null,
+
             'prices_per_ingredient' => $prices,
         ];
     }
