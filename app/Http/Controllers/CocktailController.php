@@ -487,15 +487,14 @@ class CocktailController extends Controller
             abort(403);
         }
 
-        $results = [];
-        $categories = PriceCategory::where('bar_id', $cocktail->bar_id)->get();
+        $category = PriceCategory::where('bar_id', $cocktail->bar_id)->first();
 
-        foreach ($categories as $category) {
-            $result = new CocktailPriceResource(new CocktailPrice($category, $cocktail));
-
-            $results[] = $result;
+        if ($category === null) {
+            return CocktailPriceResource::collection([]);
         }
 
-        return CocktailPriceResource::collection($results);
+        return CocktailPriceResource::collection([
+            new CocktailPriceResource(new CocktailPrice($category, $cocktail)),
+        ]);
     }
 }
