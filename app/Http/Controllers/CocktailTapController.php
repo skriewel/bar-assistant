@@ -7,6 +7,7 @@ namespace Kami\Cocktail\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Kami\Cocktail\Models\Cocktail;
 use Kami\Cocktail\Models\CocktailTap;
@@ -29,6 +30,32 @@ class CocktailTapController extends Controller
             'meta' => [
                 'total' => $taps->count(),
                 'last_tapped_on' => $taps->first()?->tapped_on?->format('Y-m-d'),
+            ],
+        ]);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $barId = (int) $request->header('Bar-Assistant-Bar-Id', 0);
+        if ($barId <= 0) {
+            abort(400, 'Bar-Assistant-Bar-Id header is required.');
+        }
+
+        $membership = $request->user()->getBarMembership($barId);
+        if ($membership === null) {
+            abort(403);
+        }
+
+        return response()->json([
+            'data' => [
+                'personal' => [
+                    'most_tapped' => $this->tapStatsQuery($barId, (int) $membership->id, 'most'),
+                    'last_tapped' => $this->tapStatsQuery($barId, (int) $membership->id, 'last'),
+                ],
+                'bar' => [
+                    'most_tapped' => $this->tapStatsQuery($barId, null, 'most'),
+                    'last_tapped' => $this->tapStatsQuery($barId, null, 'last'),
+                ],
             ],
         ]);
     }
@@ -83,6 +110,44 @@ class CocktailTapController extends Controller
         $tap->delete();
 
         return new Response(null, 204);
+    }
+
+    /** @return array<int, array{id: int, name: string, slug: string, tap_count: int, last_tapped_on: string}> */
+    private function tapStatsQuery(int $barId, ?int $membershipId, string $order): array
+    {
+        $query = DB::table('cocktail_taps as t')
+            ->join('cocktails as c', 'c.id', '=', 't.cocktail_id')
+            ->join('bar_memberships as bm', 'bm.id', '=', 't.bar_membership_id')
+            ->where('c.bar_id', $barId)
+            ->where('bm.bar_id', $barId)
+            ->when($membershipId !== null, fn ($q) => $q->where('t.bar_membership_id', $membershipId))
+            ->groupBy('c.id', 'c.name', 'c.slug')
+            ->select([
+                'c.id',
+                'c.name',
+                'c.slug',
+                DB::raw('COUNT(t.id) as tap_count'),
+                DB::raw('MAX(t.tapped_on) as last_tapped_on'),
+            ]);
+
+        if ($order === 'most') {
+            $query->orderByDesc('tap_count')->orderByDesc('last_tapped_on')->orderBy('c.name');
+        } else {
+            $query->orderByDesc('last_tapped_on')->orderByDesc('tap_count')->orderBy('c.name');
+        }
+
+        return $query
+            ->limit(8)
+            ->get()
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'slug' => (string) $row->slug,
+                'tap_count' => (int) $row->tap_count,
+                'last_tapped_on' => (string) $row->last_tapped_on,
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return array{0: Cocktail, 1: int} */
