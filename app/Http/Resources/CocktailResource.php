@@ -39,7 +39,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
             ], required: ['name', 'rating'])),
         ]),
         new OAT\Property(property: 'glass', type: GlassResource::class, description: 'Cocktail glass', nullable: true),
-        new OAT\Property(property: 'utensils', type: 'array', items: new OAT\Items(type: CocktailIngredientResource::class), description: 'Cocktail utensils'),
+        new OAT\Property(property: 'utensils', type: 'array', items: new OAT\Items(type: UtensilResource::class), description: 'Cocktail utensils'),
         new OAT\Property(property: 'ingredients', type: 'array', items: new OAT\Items(type: CocktailIngredientResource::class), description: 'Cocktail ingredients'),
         new OAT\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2023-10-01T12:00:00Z', description: 'Creation date of the cocktail'),
         new OAT\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2023-10-01T12:00:00Z', description: 'Last update date of the cocktail', nullable: true),
