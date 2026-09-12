@@ -10,9 +10,13 @@ if (config('bar-assistant.mail_require_confirmation') === true) {
     $tapApiMiddleware[] = 'verified';
 }
 
-Route::middleware($tapApiMiddleware)->prefix('cocktails/{id}/taps')->group(function () {
-    Route::get('/', [CocktailTapController::class, 'index'])->middleware(['ability:cocktails.read']);
-    Route::post('/', [CocktailTapController::class, 'store'])->middleware(['ability:cocktails.read']);
-    Route::patch('/{tapId}', [CocktailTapController::class, 'update'])->middleware(['ability:cocktails.read']);
-    Route::delete('/{tapId}', [CocktailTapController::class, 'destroy'])->middleware(['ability:cocktails.read']);
+Route::middleware($tapApiMiddleware)->group(function () {
+    Route::get('taps/stats', [CocktailTapController::class, 'stats'])->middleware(['ability:cocktails.read']);
+
+    Route::prefix('cocktails/{id}/taps')->group(function () {
+        Route::get('/', [CocktailTapController::class, 'index'])->middleware(['ability:cocktails.read']);
+        Route::post('/', [CocktailTapController::class, 'store'])->middleware(['ability:cocktails.read']);
+        Route::patch('/{tapId}', [CocktailTapController::class, 'update'])->middleware(['ability:cocktails.read']);
+        Route::delete('/{tapId}', [CocktailTapController::class, 'destroy'])->middleware(['ability:cocktails.read']);
+    });
 });
