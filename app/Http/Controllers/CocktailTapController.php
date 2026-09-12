@@ -112,7 +112,7 @@ class CocktailTapController extends Controller
         return new Response(null, 204);
     }
 
-    /** @return array<int, array{id: int, name: string, slug: string, tap_count: int, last_tapped_on: string}> */
+    /** @return array<int, array{id: int, name: string, slug: string, tap_count: int, last_tapped_on: string, images: array<int, array{id: int}>}> */
     private function tapStatsQuery(int $barId, ?int $membershipId, string $order): array
     {
         $query = DB::table('cocktail_taps as t')
@@ -136,16 +136,30 @@ class CocktailTapController extends Controller
             $query->orderByDesc('last_tapped_on')->orderByDesc('tap_count')->orderBy('c.name');
         }
 
-        return $query
-            ->limit(8)
+        $rows = $query->limit(8)->get();
+        $cocktails = Cocktail::query()
+            ->with('images')
+            ->whereIn('id', $rows->pluck('id'))
             ->get()
-            ->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'name' => (string) $row->name,
-                'slug' => (string) $row->slug,
-                'tap_count' => (int) $row->tap_count,
-                'last_tapped_on' => (string) $row->last_tapped_on,
-            ])
+            ->keyBy('id');
+
+        return $rows
+            ->map(function ($row) use ($cocktails) {
+                $cocktail = $cocktails->get((int) $row->id);
+
+                return [
+                    'id' => (int) $row->id,
+                    'name' => (string) $row->name,
+                    'slug' => (string) $row->slug,
+                    'tap_count' => (int) $row->tap_count,
+                    'last_tapped_on' => (string) $row->last_tapped_on,
+                    'images' => $cocktail?->images
+                        ->take(1)
+                        ->map(fn ($image) => ['id' => (int) $image->id])
+                        ->values()
+                        ->all() ?? [],
+                ];
+            })
             ->values()
             ->all();
     }
