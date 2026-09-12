@@ -33,13 +33,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
             new OAT\Property(type: 'number', property: 'user', example: 1, nullable: true, description: 'Current user\'s rating on a 0.5 step'),
             new OAT\Property(type: 'number', property: 'average', example: 4, description: 'Average rating rounded to the nearest 0.5'),
             new OAT\Property(type: 'integer', property: 'total_votes', example: 12),
-            new OAT\Property(property: 'breakdown', type: 'array', nullable: true, description: 'Per-user ratings, available to bar admins only', items: new OAT\Items(type: 'object', properties: [
+            new OAT\Property(property: 'breakdown', type: 'array', nullable: true, description: 'Per-user ratings on the cocktail detail response, available to bar admins only', items: new OAT\Items(type: 'object', properties: [
                 new OAT\Property(property: 'name', type: 'string', example: 'Sascha'),
                 new OAT\Property(property: 'rating', type: 'number', example: 4.5),
             ], required: ['name', 'rating'])),
         ]),
         new OAT\Property(property: 'glass', type: GlassResource::class, description: 'Cocktail glass', nullable: true),
-        new OAT\Property(property: 'utensils', type: 'array', items: new OAT\Items(type: UtensilResource::class), description: 'Cocktail utensils'),
+        new OAT\Property(property: 'utensils', type: 'array', items: new OAT\Items(type: CocktailIngredientResource::class), description: 'Cocktail utensils'),
         new OAT\Property(property: 'ingredients', type: 'array', items: new OAT\Items(type: CocktailIngredientResource::class), description: 'Cocktail ingredients'),
         new OAT\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2023-10-01T12:00:00Z', description: 'Creation date of the cocktail'),
         new OAT\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2023-10-01T12:00:00Z', description: 'Last update date of the cocktail', nullable: true),
@@ -95,7 +95,7 @@ class CocktailResource extends JsonResource
     public function toArray($request)
     {
         $barMembership = $request->user()->getBarMembership($this->bar_id);
-        $isBarAdmin = $barMembership?->user_role_id === 1;
+        $showRatingBreakdown = $request->routeIs('cocktails.show') && $barMembership?->user_role_id === 1;
 
         return [
             'id' => $this->id,
@@ -124,7 +124,7 @@ class CocktailResource extends JsonResource
                     'user' => $this->user_rating ?? null,
                     'average' => round(($this->average_rating ?? 0) * 2) / 2,
                     'total_votes' => $this->totalRatedCount(),
-                ], $isBarAdmin ? [
+                ], $showRatingBreakdown ? [
                     'breakdown' => DB::table('ratings as r')
                         ->join('bar_memberships as bm', 'bm.id', '=', 'r.bar_membership_id')
                         ->join('users as u', 'u.id', '=', 'bm.user_id')
