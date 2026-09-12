@@ -573,15 +573,36 @@ class CocktailController extends Controller
             abort(403);
         }
 
-        $results = [];
         $categories = PriceCategory::where('bar_id', $cocktail->bar_id)->get();
 
-        foreach ($categories as $category) {
-            $result = new CocktailPriceResource(new CocktailPrice($category, $cocktail));
-
-            $results[] = $result;
+        if ($categories->isEmpty()) {
+            return CocktailPriceResource::collection([]);
         }
 
-        return CocktailPriceResource::collection($results);
+        $currencies = $categories
+            ->pluck('currency')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($currencies->count() !== 1) {
+            abort(422, 'Best available pricing requires all price categories in a bar to use the same currency.');
+        }
+
+        $currency = $currencies->first();
+
+        if (!is_string($currency)) {
+            abort(422, 'Unable to determine currency for best available pricing.');
+        }
+
+        $bestAvailableCategory = new PriceCategory();
+        $bestAvailableCategory->id = 0;
+        $bestAvailableCategory->name = 'Best available';
+        $bestAvailableCategory->description = 'Cheapest available price for each ingredient across all price categories';
+        $bestAvailableCategory->currency = $currency;
+
+        return CocktailPriceResource::collection([
+            new CocktailPrice($bestAvailableCategory, $cocktail),
+        ]);
     }
 }

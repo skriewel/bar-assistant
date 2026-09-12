@@ -102,6 +102,70 @@ class CocktailIngredient extends BaseModel
         return $pricePerUse;
     }
 
+    public function getMinConvertedPrice(string $currency): ?IngredientPrice
+    {
+        $ingredient = $this->ingredient;
+
+        if ($ingredient === null) {
+            return null;
+        }
+
+        $minPrice = null;
+        $minPricePerUnit = null;
+
+        foreach ($ingredient->getPricesWithConvertedUnits($this->units) as $ingredientPrice) {
+            $priceCategory = $ingredientPrice->priceCategory;
+
+            if ($priceCategory === null || $priceCategory->currency !== $currency) {
+                continue;
+            }
+
+            if ($ingredientPrice->units !== $this->units) {
+                continue;
+            }
+
+            try {
+                $pricePerUnit = $ingredientPrice->getPricePerUnit($this->units);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($minPricePerUnit === null || $pricePerUnit->isLessThan($minPricePerUnit)) {
+                $minPrice = $ingredientPrice;
+                $minPricePerUnit = $pricePerUnit;
+            }
+        }
+
+        return $minPrice;
+    }
+
+    public function getConvertedBestPricePerUse(string $currency): ?RationalMoney
+    {
+        $ingredientPrice = $this->getMinConvertedPrice($currency);
+
+        if ($ingredientPrice === null) {
+            return null;
+        }
+
+        $convertedLocalAmount = $this
+            ->getAmount()
+            ->convertTo(new UnitValueObject($ingredientPrice->units));
+
+        try {
+            $pricePerUse = $ingredientPrice
+                ->getPricePerUnit()
+                ->multipliedBy($convertedLocalAmount->amountMin);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($pricePerUse->isLessThanOrEqualTo(0)) {
+            $pricePerUse = $pricePerUse->plus(0.01);
+        }
+
+        return $pricePerUse;
+    }
+
     public function getMinConvertedPriceInCategory(PriceCategory $priceCategory): ?IngredientPrice
     {
         return $this
