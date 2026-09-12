@@ -61,7 +61,6 @@ final class CocktailQueryFilter extends QueryBuilder
                     });
                 }),
                 AllowedFilter::callback('favorites', function ($query, $value) use ($barMembership) {
-                    // TODO: Deprecate this filter in favor of favorited_by_user
                     if ($value === true) {
                         $query->userFavorites([$barMembership->id]);
                     }
@@ -155,6 +154,10 @@ final class CocktailQueryFilter extends QueryBuilder
                     }
                 }),
                 AllowedFilter::callback('user_rating_min', function ($query, $value) {
+                    if ($value === 'none') {
+                        $query->whereNull('user_rating');
+                        return;
+                    }
                     $query->where('user_rating', '>=', (float) $value);
                 }),
                 AllowedFilter::callback('user_rating_max', function ($query, $value) {
@@ -186,6 +189,10 @@ final class CocktailQueryFilter extends QueryBuilder
                     $query->whereIn('ci.ingredient_id', $value)->where('sort', '=', 1);
                 }),
                 AllowedFilter::callback('total_ingredients', function ($query, $value) {
+                    if ($value === 'max3') {
+                        $query->having('total_ingredients', '<=', 3);
+                        return;
+                    }
                     $query->having('total_ingredients', '>=', (int) $value);
                 }),
                 AllowedFilter::callback('missing_ingredients', function ($query, $value) {
