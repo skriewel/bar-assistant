@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kami\Cocktail\Http\Resources;
 
 use OpenApi\Attributes as OAT;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -32,6 +33,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
             new OAT\Property(type: 'number', property: 'user', example: 1, nullable: true, description: 'Current user\'s rating on a 0.5 step'),
             new OAT\Property(type: 'number', property: 'average', example: 4, description: 'Average rating rounded to the nearest 0.5'),
             new OAT\Property(type: 'integer', property: 'total_votes', example: 12),
+            new OAT\Property(property: 'breakdown', type: 'array', nullable: true, description: 'Per-user ratings, available to bar admins only', items: new OAT\Items(type: 'object', properties: [
+                new OAT\Property(property: 'name', type: 'string', example: 'Sascha'),
+                new OAT\Property(property: 'rating', type: 'number', example: 4.5),
+            ], required: ['name', 'rating'])),
         ]),
         new OAT\Property(property: 'glass', type: GlassResource::class, description: 'Cocktail glass', nullable: true),
         new OAT\Property(property: 'utensils', type: 'array', items: new OAT\Items(type: UtensilResource::class), description: 'Cocktail utensils'),
@@ -89,6 +94,9 @@ class CocktailResource extends JsonResource
     #[\Override]
     public function toArray($request)
     {
+        $barMembership = $request->user()->getBarMembership($this->bar_id);
+        $isBarAdmin = $barMembership?->user_role_id === 1;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -112,11 +120,26 @@ class CocktailResource extends JsonResource
             ),
             'rating' => $this->when(
                 $this->relationLoaded('ratings'),
-                fn () => [
+                fn () => array_merge([
                     'user' => $this->user_rating ?? null,
                     'average' => round(($this->average_rating ?? 0) * 2) / 2,
                     'total_votes' => $this->totalRatedCount(),
-                ]
+                ], $isBarAdmin ? [
+                    'breakdown' => DB::table('ratings as r')
+                        ->join('bar_memberships as bm', 'bm.id', '=', 'r.bar_membership_id')
+                        ->join('users as u', 'u.id', '=', 'bm.user_id')
+                        ->where('r.rateable_type', \Kami\Cocktail\Models\Cocktail::class)
+                        ->where('r.rateable_id', $this->id)
+                        ->where('bm.bar_id', $this->bar_id)
+                        ->orderBy('u.name')
+                        ->get(['u.name', 'r.rating'])
+                        ->map(fn ($row) => [
+                            'name' => $row->name,
+                            'rating' => (float) $row->rating,
+                        ])
+                        ->values()
+                        ->all(),
+                ] : [])
             ),
             'glass' => new GlassResource($this->whenLoaded('glass')),
             'utensils' => UtensilResource::collection($this->whenLoaded('utensils')),
