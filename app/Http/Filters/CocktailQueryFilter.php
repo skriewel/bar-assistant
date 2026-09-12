@@ -132,6 +132,28 @@ final class CocktailQueryFilter extends QueryBuilder
                         $query->whereNotNull('public_id');
                     }
                 }),
+                AllowedFilter::callback('tapped_after', function ($query, $value) use ($barMembership) {
+                    $query->whereRaw(
+                        '(SELECT MAX(ct.tapped_on) FROM cocktail_taps ct WHERE ct.cocktail_id = cocktails.id AND ct.bar_membership_id = ?) >= ?',
+                        [$barMembership->id, (string) $value],
+                    );
+                }),
+                AllowedFilter::callback('tapped_before', function ($query, $value) use ($barMembership) {
+                    $query->whereRaw(
+                        '(SELECT MAX(ct.tapped_on) FROM cocktail_taps ct WHERE ct.cocktail_id = cocktails.id AND ct.bar_membership_id = ?) <= ?',
+                        [$barMembership->id, (string) $value],
+                    );
+                }),
+                AllowedFilter::callback('never_tapped', function ($query, $value) use ($barMembership) {
+                    if ($value === true || $value === 'true' || $value === '1' || $value === 1) {
+                        $query->whereNotExists(function ($subquery) use ($barMembership) {
+                            $subquery->selectRaw('1')
+                                ->from('cocktail_taps as ct')
+                                ->whereColumn('ct.cocktail_id', 'cocktails.id')
+                                ->where('ct.bar_membership_id', $barMembership->id);
+                        });
+                    }
+                }),
                 AllowedFilter::callback('user_rating_min', function ($query, $value) {
                     $query->where('user_rating', '>=', (float) $value);
                 }),
@@ -230,6 +252,13 @@ final class CocktailQueryFilter extends QueryBuilder
                     $query->leftJoin('cocktail_favorites AS cf', 'cf.cocktail_id', '=', 'cocktails.id')
                         ->where('cf.bar_membership_id', $barMembership->id)
                         ->orderBy('cf.updated_at', $direction);
+                }),
+                AllowedSort::callback('last_tapped_on', function ($query, bool $descending) use ($barMembership) {
+                    $direction = $descending ? 'DESC' : 'ASC';
+                    $query->orderByRaw(
+                        '(SELECT MAX(ct.tapped_on) FROM cocktail_taps ct WHERE ct.cocktail_id = cocktails.id AND ct.bar_membership_id = ?) ' . $direction,
+                        [$barMembership->id],
+                    );
                 }),
                 AllowedSort::callback('random', function ($query) {
                     $query->inRandomOrder();
