@@ -1,3 +1,7 @@
+# v6.7.1
+## Fixes
+- Correctly match unspecified cocktail ingredients when variants are in shelf
+
 # v6.7.0
 ## New
 - Added menu edit and view permissions to PAT
