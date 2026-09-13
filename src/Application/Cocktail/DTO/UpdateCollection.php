@@ -11,6 +11,7 @@ final readonly class UpdateCollection
         public string $name,
         public ?string $description = null,
         public bool $isBarShared = false,
+        public bool $isCollaborative = false,
     ) {
     }
 }

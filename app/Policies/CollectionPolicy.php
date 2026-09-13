@@ -22,12 +22,28 @@ class CollectionPolicy
 
     public function show(User $user, Collection $collection): bool
     {
-        return $user->memberships->contains('id', $collection->bar_membership_id);
+        if ($user->memberships->contains('id', $collection->bar_membership_id)) {
+            return true;
+        }
+
+        return $collection->is_bar_shared
+            && $user->memberships->contains('bar_id', $collection->barMembership->bar_id);
     }
 
     public function edit(User $user, Collection $collection): bool
     {
         return $user->memberships->contains('id', $collection->bar_membership_id);
+    }
+
+    public function editCocktails(User $user, Collection $collection): bool
+    {
+        if ($this->edit($user, $collection)) {
+            return true;
+        }
+
+        return $collection->is_bar_shared
+            && $collection->is_collaborative
+            && $user->memberships->contains('bar_id', $collection->barMembership->bar_id);
     }
 
     public function delete(User $user, Collection $collection): bool

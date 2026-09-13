@@ -28,8 +28,10 @@ final class CocktailCollection implements Identity
         private RecordTimestamps $recordTimestamps,
         private ?string $description = null,
         private bool $isBarShared = false,
+        private bool $isCollaborative = false,
         array $cocktailIds = [],
     ) {
+        $this->isCollaborative = $this->isBarShared && $this->isCollaborative;
         $this->syncCocktails($cocktailIds);
     }
 
@@ -43,6 +45,7 @@ final class CocktailCollection implements Identity
         RecordTimestamps $recordTimestamps,
         ?string $description = null,
         bool $isBarShared = false,
+        bool $isCollaborative = false,
         array $cocktailIds = [],
     ): self {
         return new self(
@@ -52,6 +55,7 @@ final class CocktailCollection implements Identity
             recordTimestamps: $recordTimestamps,
             description: $description,
             isBarShared: $isBarShared,
+            isCollaborative: $isCollaborative,
             cocktailIds: $cocktailIds,
         );
     }
@@ -107,6 +111,11 @@ final class CocktailCollection implements Identity
         return $this->isBarShared;
     }
 
+    public function isCollaborative(): bool
+    {
+        return $this->isCollaborative;
+    }
+
     /**
      * @return CocktailId[]
      */
@@ -115,7 +124,7 @@ final class CocktailCollection implements Identity
         return $this->cocktailIds;
     }
 
-    public function updateDetails(Name $name, ?string $description, bool $isBarShared): self
+    public function updateDetails(Name $name, ?string $description, bool $isBarShared, bool $isCollaborative): self
     {
         if ($this->isTransient()) {
             throw new DomainException('Cannot update details of a transient collection');
@@ -124,6 +133,7 @@ final class CocktailCollection implements Identity
         $this->name = $name;
         $this->description = $description;
         $this->isBarShared = $isBarShared;
+        $this->isCollaborative = $isBarShared && $isCollaborative;
         $this->recordTimestamps = $this->recordTimestamps->updatedNow();
 
         return $this;

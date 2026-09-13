@@ -15,6 +15,8 @@ class CollectionRequest
     public ?string $description = null;
     #[OAT\Property(example: false, property: 'is_bar_shared', description: 'Whether the collection should be shared with the bar. Shared collections are visible to all bar members. Default `false`.')]
     public bool $isBarShared = false;
+    #[OAT\Property(example: false, property: 'is_collaborative', description: 'Whether bar members may add or remove cocktails from this shared collection. Only applies to bar-shared collections. Default `false`.')]
+    public bool $isCollaborative = false;
     /** @var int[] */
     #[OAT\Property(example: [1, 2, 3], description: 'List of cocktail ids that belong to this collection', items: new OAT\Items(type: 'integer'))]
     public array $cocktails = [];

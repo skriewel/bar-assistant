@@ -24,7 +24,7 @@ use BarAssistant\Application\Cocktail\DTO\SyncCollectionCocktails;
 
 class CollectionController extends Controller
 {
-    #[OAT\Get(path: '/collections', tags: ['Collections'], operationId: 'listCollections', description: 'Show a list of all user collections in a specific bar', summary: 'List collections', parameters: [
+    #[OAT\Get(path: '/collections', tags: ['Collections'], operationId: 'listCollections', description: 'Show user-owned and collaborative collections in a specific bar', summary: 'List collections', parameters: [
         new BAO\Parameters\BarIdHeaderParameter(),
         new OAT\Parameter(name: 'filter', in: 'query', description: 'Filter by attributes', explode: true, style: 'deepObject', schema: new OAT\Schema(type: 'object', properties: [
             new OAT\Property(property: 'id', type: 'integer'),
@@ -109,8 +109,8 @@ class CollectionController extends Controller
         }
 
         $cocktailIds = $request->post('cocktails', []);
-
         $barMembership = $request->user()->getBarMembership(bar()->id);
+        $isBarShared = $request->boolean('is_bar_shared');
 
         Validator::make($cocktailIds, [
             '*' => [new ResourceBelongsToBar($barMembership->bar_id, 'cocktails')],
@@ -121,7 +121,8 @@ class CollectionController extends Controller
             memberId: $barMembership->id,
             name: $request->input('name'),
             description: $request->input('description'),
-            isBarShared: $request->boolean('is_bar_shared'),
+            isBarShared: $isBarShared,
+            isCollaborative: $isBarShared && $request->boolean('is_collaborative'),
             cocktailIds: $cocktailIds,
         ));
 
@@ -147,11 +148,14 @@ class CollectionController extends Controller
             abort(403);
         }
 
+        $isBarShared = $request->boolean('is_bar_shared');
+
         $collectionService->updateCollection(new UpdateCollection(
             collectionId: $id,
             name: $request->input('name'),
             description: $request->input('description'),
-            isBarShared: $request->boolean('is_bar_shared'),
+            isBarShared: $isBarShared,
+            isCollaborative: $isBarShared && $request->boolean('is_collaborative'),
         ));
 
         return new Response(status: 204);
@@ -173,7 +177,7 @@ class CollectionController extends Controller
     {
         $collection = CocktailCollection::findOrFail($id)->load('barMembership');
 
-        if ($request->user()->cannot('edit', $collection)) {
+        if ($request->user()->cannot('editCocktails', $collection)) {
             abort(403);
         }
 

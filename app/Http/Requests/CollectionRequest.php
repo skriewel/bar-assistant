@@ -29,6 +29,8 @@ class CollectionRequest extends FormRequest
             'name' => 'required',
             'cocktails' => 'array',
             'share_in_bar' => 'boolean',
+            'is_bar_shared' => 'boolean',
+            'is_collaborative' => 'boolean',
         ];
     }
 }

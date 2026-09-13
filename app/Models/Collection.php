@@ -15,6 +15,7 @@ class Collection extends BaseModel
 
     protected $casts = [
         'is_bar_shared' => 'boolean',
+        'is_collaborative' => 'boolean',
     ];
 
     /**

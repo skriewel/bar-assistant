@@ -34,6 +34,7 @@ final readonly class CollectionService
             recordTimestamps: RecordTimestamps::createdNow(),
             description: $request->description,
             isBarShared: $request->isBarShared,
+            isCollaborative: $request->isCollaborative,
         );
 
         $collection->syncCocktails($this->toCocktailIds($request->cocktailIds));
@@ -54,6 +55,7 @@ final readonly class CollectionService
             name: Name::fromString($request->name),
             description: $request->description,
             isBarShared: $request->isBarShared,
+            isCollaborative: $request->isCollaborative,
         );
 
         $collection = $this->collectionRepository->save($collection);

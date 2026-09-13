@@ -37,6 +37,7 @@ final class EloquentCocktailCollectionRepository implements CocktailCollectionRe
             $model->name = $collection->getName()->toString();
             $model->description = $collection->getDescription();
             $model->is_bar_shared = $collection->isBarShared();
+            $model->is_collaborative = $collection->isCollaborative();
             $model->created_at = $collection->getRecordTimestamps()->getCreatedAt()->format('Y-m-d H:i:s');
 
             if ($collection->getRecordTimestamps()->wasUpdated()) {
@@ -87,6 +88,7 @@ final class EloquentCocktailCollectionRepository implements CocktailCollectionRe
             recordTimestamps: RecordTimestamps::createdAt($model->created_at->toDateTimeImmutable())->updatedAt($model->updated_at?->toDateTimeImmutable()),
             description: $model->description,
             isBarShared: $model->is_bar_shared,
+            isCollaborative: $model->is_collaborative,
             cocktailIds: array_map(
                 static fn (ModelCocktail $cocktail): CocktailId => new CocktailId($cocktail->id),
                 $model->cocktails->all(),
