@@ -11,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('cocktails', function (Blueprint $table) {
-            $table->string('publication')->nullable()->after('source');
+            $table->string('publication')->nullable();
         });
     }
 
