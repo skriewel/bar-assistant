@@ -21,7 +21,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
         new OAT\Property(property: 'instructions', type: 'string', example: 'Step by step instructions', description: 'Cocktail instructions'),
         new OAT\Property(property: 'garnish', type: 'string', example: 'Garnish', description: 'Cocktail garnish', nullable: true),
         new OAT\Property(property: 'description', type: 'string', example: 'Cocktail description', description: 'Cocktail description', nullable: true),
-        new OAT\Property(property: 'source', type: 'string', example: 'Source of the recipe', description: 'Cocktail source', nullable: true),
+        new OAT\Property(property: 'source', type: 'string', example: 'https://example.com/recipe', description: 'Recipe web link', nullable: true),
+        new OAT\Property(property: 'publication', type: 'string', example: 'The PDT Cocktail Book', description: 'Recipe publication', nullable: true),
         new OAT\Property(property: 'public_id', type: 'string', example: 'public-id-1', description: 'Public ID of the cocktail', nullable: true),
         new OAT\Property(property: 'public_at', type: 'string', format: 'date-time', example: '2023-10-01T12:00:00Z', description: 'Public date of the cocktail', nullable: true),
         new OAT\Property(property: 'images', type: 'array', items: new OAT\Items(type: ImageResource::class), description: 'Cocktail images'),
@@ -57,37 +58,17 @@ use Illuminate\Http\Resources\Json\JsonResource;
             new OAT\Property(property: 'can_delete', type: 'boolean', example: true, description: 'Can the user delete the cocktail'),
             new OAT\Property(property: 'can_rate', type: 'boolean', example: true, description: 'Can the user rate the cocktail'),
             new OAT\Property(property: 'can_add_note', type: 'boolean', example: true, description: 'Can the user add a note to the cocktail'),
-        ], required: [
-            'can_edit',
-            'can_delete',
-            'can_rate',
-            'can_add_note',
-        ]),
+        ], required: ['can_edit', 'can_delete', 'can_rate', 'can_add_note']),
         new OAT\Property(property: 'parent_cocktail', type: CocktailBasicResource::class, description: 'If this cocktail is a variety of existing cocktail, this will reference the original cocktail', nullable: true),
         new OAT\Property(property: 'varieties', type: 'array', items: new OAT\Items(type: CocktailBasicResource::class), description: 'List of varieties of this cocktail'),
         new OAT\Property(property: 'year', type: 'number', example: 2023, description: 'Cocktail recipe year', nullable: true),
         new OAT\Property(property: 'author', type: 'string', example: 'Jerry Thomas', description: 'Historical author of the cocktail recipe', nullable: true),
     ],
-    required: [
-        'id',
-        'name',
-        'slug',
-        'garnish',
-        'description',
-        'instructions',
-        'source',
-        'public_id',
-        'public_at',
-        'created_at',
-        'updated_at',
-        'abv',
-    ]
+    required: ['id', 'name', 'slug', 'garnish', 'description', 'instructions', 'source', 'publication', 'public_id', 'public_at', 'created_at', 'updated_at', 'abv']
 )]
 class CocktailResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
-     *
      * @param  \Illuminate\Http\Request  $request
      * @return array<string, mixed>
      */
@@ -105,19 +86,11 @@ class CocktailResource extends JsonResource
             'garnish' => $this->garnish,
             'description' => $this->description,
             'source' => $this->source,
+            'publication' => $this->publication,
             'public_id' => $this->public_id,
             'public_at' => $this->public_at?->toAtomString() ?? null,
-            'images' => $this->when(
-                $this->relationLoaded('images'),
-                fn () => ImageResource::collection($this->images)
-            ),
-            'tags' => $this->when(
-                $this->relationLoaded('tags'),
-                fn () => $this->tags->map(fn ($tag) => [
-                    'id' => $tag->id,
-                    'name' => $tag->name,
-                ])
-            ),
+            'images' => $this->when($this->relationLoaded('images'), fn () => ImageResource::collection($this->images)),
+            'tags' => $this->when($this->relationLoaded('tags'), fn () => $this->tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])),
             'rating' => $this->when(
                 $this->relationLoaded('ratings'),
                 fn () => array_merge([
@@ -133,10 +106,7 @@ class CocktailResource extends JsonResource
                         ->where('bm.bar_id', $this->bar_id)
                         ->orderBy('u.name')
                         ->get(['u.name', 'r.rating'])
-                        ->map(fn ($row) => [
-                            'name' => $row->name,
-                            'rating' => (float) $row->rating,
-                        ])
+                        ->map(fn ($row) => ['name' => $row->name, 'rating' => (float) $row->rating])
                         ->values()
                         ->all(),
                 ] : [])
