@@ -90,8 +90,11 @@ class CocktailController extends Controller
     ])]
     #[BAO\SuccessfulResponse(content: [
         new BAO\PaginateData(CocktailResource::class, [
-            new OAT\Property(property: 'filters', type: 'object', required: ['authors'], properties: [
+            new OAT\Property(property: 'filters', type: 'object', required: ['authors', 'publications'], properties: [
                 new OAT\Property(property: 'authors', type: 'array', required: ['name'], items: new OAT\Items(type: 'object', properties: [
+                    new OAT\Property(property: 'name', type: 'string'),
+                ])),
+                new OAT\Property(property: 'publications', type: 'array', required: ['name'], items: new OAT\Items(type: 'object', properties: [
                     new OAT\Property(property: 'name', type: 'string'),
                 ])),
             ]),
@@ -117,10 +120,20 @@ class CocktailController extends Controller
             ->pluck('author')
             ->map(fn ($name) => ['name' => $name]);
 
+        $publications = DB::table('cocktails')
+            ->where('bar_id', bar()->id)
+            ->whereNotNull('publication')
+            ->where('publication', '!=', '')
+            ->distinct()
+            ->orderBy('publication')
+            ->pluck('publication')
+            ->map(fn ($name) => ['name' => $name]);
+
         return CocktailResource::collection($cocktails->withQueryString())->additional([
             'meta' => [
                 'filters' => [
                     'authors' => $authors,
+                    'publications' => $publications,
                 ],
             ],
         ]);
