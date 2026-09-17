@@ -120,12 +120,30 @@ final class IngredientHierarchyNode implements Identity
 
     public function isDescendantOf(self $other): bool
     {
-        return $this->materializedPath->isDescendantOf($other->materializedPath);
+        $otherId = $other->getId();
+
+        if ($otherId === null) {
+            return false;
+        }
+
+        return array_any(
+            $this->materializedPath->getAncestorIds(),
+            $otherId->equals(...),
+        );
     }
 
     public function isAncestorOf(self $other): bool
     {
-        return $this->materializedPath->isAncestorOf($other->materializedPath);
+        $nodeId = $this->getId();
+
+        if ($nodeId === null) {
+            return false;
+        }
+
+        return array_any(
+            $other->materializedPath->getAncestorIds(),
+            $nodeId->equals(...),
+        );
     }
 
     /**
@@ -148,7 +166,7 @@ final class IngredientHierarchyNode implements Identity
                 throw new IngredientHierarchyException('Nodes must be from the same bar');
             }
 
-            if ($parent->id && $this->id?->equals($parent->id)) {
+            if ($this->id->equals($parent->id)) {
                 throw new IngredientHierarchyException('Node cannot be its own parent');
             }
 
