@@ -42,6 +42,7 @@ final class EloquentCocktailRepository implements CocktailRepository
         $model->garnish = $cocktail->getGarnish();
         $model->description = $cocktail->getDescription();
         $model->source = $cocktail->getSource();
+        $model->publication = $cocktail->getPublication();
         $model->year = $cocktail->getYear();
         $model->author = $cocktail->getAuthor();
         $model->glass_id = $cocktail->getGlassId()?->value;
@@ -53,7 +54,7 @@ final class EloquentCocktailRepository implements CocktailRepository
         $model->parent_cocktail_id = $cocktail->getVariantOf()?->value;
         $model->created_user_id = $cocktail->getAuthors()->getCreatedBy()->value;
         $model->created_at = $cocktail->getRecordTimestamps()->getCreatedAt()->format('Y-m-d H:i:s');
-        if ($cocktail->getAuthors()->isUpdated()) { // TODO: Change...
+        if ($cocktail->getAuthors()->isUpdated()) {
             $model->updated_user_id = $cocktail->getAuthors()->getUpdatedBy()?->value;
             $model->updated_at = $cocktail->getRecordTimestamps()->getUpdatedAt()?->format('Y-m-d H:i:s');
         }
@@ -149,6 +150,7 @@ final class EloquentCocktailRepository implements CocktailRepository
             description: $model->description,
             garnish: $model->garnish,
             source: $model->source,
+            publication: $model->publication,
             dilution: Dilution::fromFloat($model->method->dilution_percentage ?? 0.0),
             year: $model->year,
             glassId: $model->glass_id ? new GlassId($model->glass_id) : null,
@@ -166,7 +168,6 @@ final class EloquentCocktailRepository implements CocktailRepository
                 if ($cocktailIngredientSubstitute->amount !== null && $cocktailIngredientSubstitute->units !== null) {
                     $amountWithUnits = AmountWithUnits::from($cocktailIngredientSubstitute->amount, Unit::from($cocktailIngredientSubstitute->units), $cocktailIngredientSubstitute->amount_max);
                 }
-
                 $substitutes[] = CocktailIngredientSubstitute::create(
                     ingredientId: new IngredientId($cocktailIngredientSubstitute->ingredient_id),
                     amountWithUnits: $amountWithUnits,
