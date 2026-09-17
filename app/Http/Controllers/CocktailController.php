@@ -51,6 +51,7 @@ class CocktailController extends Controller
         new OAT\Parameter(name: 'filter', in: 'query', description: 'Filter by attributes. You can specify multiple matching filter values by passing a comma separated list of values.', explode: true, style: 'deepObject', schema: new OAT\Schema(type: 'object', properties: [
             new OAT\Property(property: 'id', type: 'string', description: 'Filter by cocktail ID(s)'),
             new OAT\Property(property: 'name', type: 'string', description: 'Filter by cocktail names(s) (fuzzy search)'),
+            new OAT\Property(property: 'publication', type: 'string', description: 'Filter by recipe publication (partial match)'),
             new OAT\Property(property: 'ingredient_name', type: 'string', description: 'Filter by cocktail ingredient names(s) (fuzzy search)'),
             new OAT\Property(property: 'tag_id', type: 'string', description: 'Filter by tag ID(s)'),
             new OAT\Property(property: 'created_user_id', type: 'string', description: 'Filter by creator ID(s)'),
@@ -128,9 +129,7 @@ class CocktailController extends Controller
     #[OAT\Get(path: '/cocktails/{id}', tags: ['Cocktails'], operationId: 'showCocktail', description: 'Show details of a specific cocktail', summary: 'Show cocktail', parameters: [
         new OAT\Parameter(name: 'id', in: 'path', required: true, description: 'Database id or slug of a resource', schema: new OAT\Schema(type: 'string')),
     ])]
-    #[BAO\SuccessfulResponse(content: [
-        new BAO\WrapObjectWithData(CocktailResource::class),
-    ])]
+    #[BAO\SuccessfulResponse(content: [new BAO\WrapObjectWithData(CocktailResource::class)])]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     public function show(string $idOrSlug, Request $request): JsonResource
@@ -151,12 +150,7 @@ class CocktailController extends Controller
 
     #[OAT\Post(path: '/cocktails', tags: ['Cocktails'], operationId: 'saveCocktail', description: 'Create a new cocktail', summary: 'Create cocktail', parameters: [
         new BAO\Parameters\BarIdHeaderParameter(),
-    ], requestBody: new OAT\RequestBody(
-        required: true,
-        content: [
-            new OAT\JsonContent(ref: BAO\Schemas\CocktailRequest::class),
-        ]
-    ))]
+    ], requestBody: new OAT\RequestBody(required: true, content: [new OAT\JsonContent(ref: BAO\Schemas\CocktailRequest::class)]))]
     #[OAT\Response(response: 201, description: 'Successful response', headers: [
         new OAT\Header(header: 'Location', description: 'URL of the new resource', schema: new OAT\Schema(type: 'string')),
     ])]
@@ -214,6 +208,7 @@ class CocktailController extends Controller
             dilution: $dilution,
             description: $cocktailRequest->description,
             source: $cocktailRequest->source,
+            publication: $cocktailRequest->publication,
             garnish: $cocktailRequest->garnish,
             glassId: $cocktailRequest->glassId,
             methodId: $cocktailRequest->methodId,
@@ -231,15 +226,8 @@ class CocktailController extends Controller
 
     #[OAT\Put(path: '/cocktails/{id}', tags: ['Cocktails'], operationId: 'updateCocktail', description: 'Update a specific cocktail', summary: 'Update cocktail', parameters: [
         new BAO\Parameters\DatabaseIdParameter(),
-    ], requestBody: new OAT\RequestBody(
-        required: true,
-        content: [
-            new OAT\JsonContent(ref: BAO\Schemas\CocktailRequest::class),
-        ]
-    ))]
-    #[BAO\SuccessfulResponse(content: [
-        new BAO\WrapObjectWithData(CocktailResource::class),
-    ])]
+    ], requestBody: new OAT\RequestBody(required: true, content: [new OAT\JsonContent(ref: BAO\Schemas\CocktailRequest::class)]))]
+    #[BAO\SuccessfulResponse(content: [new BAO\WrapObjectWithData(CocktailResource::class)])]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     #[BAO\ValidationFailedResponse]
@@ -298,6 +286,7 @@ class CocktailController extends Controller
             dilution: $dilution,
             description: $cocktailRequest->description,
             source: $cocktailRequest->source,
+            publication: $cocktailRequest->publication,
             garnish: $cocktailRequest->garnish,
             glassId: $cocktailRequest->glassId,
             methodId: $cocktailRequest->methodId,
@@ -313,9 +302,7 @@ class CocktailController extends Controller
         return new Response(status: 204);
     }
 
-    #[OAT\Delete(path: '/cocktails/{id}', tags: ['Cocktails'], operationId: 'deleteCocktail', description: 'Delete a specific cocktail', summary: 'Delete cocktail', parameters: [
-        new BAO\Parameters\DatabaseIdParameter(),
-    ])]
+    #[OAT\Delete(path: '/cocktails/{id}', tags: ['Cocktails'], operationId: 'deleteCocktail', description: 'Delete a specific cocktail', summary: 'Delete cocktail', parameters: [new BAO\Parameters\DatabaseIdParameter()])]
     #[OAT\Response(response: 204, description: 'Successful response')]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
@@ -332,9 +319,7 @@ class CocktailController extends Controller
         return new Response(null, 204);
     }
 
-    #[OAT\Post(path: '/cocktails/{id}/toggle-favorite', tags: ['Cocktails'], operationId: 'toggleCocktailFavorite', description: 'Marks cocktail as users favorite. Can be called again to remove the favorite.', summary: 'Toggle favorite', parameters: [
-        new BAO\Parameters\DatabaseIdParameter(),
-    ])]
+    #[OAT\Post(path: '/cocktails/{id}/toggle-favorite', tags: ['Cocktails'], operationId: 'toggleCocktailFavorite', description: 'Marks cocktail as users favorite. Can be called again to remove the favorite.', summary: 'Toggle favorite', parameters: [new BAO\Parameters\DatabaseIdParameter()])]
     #[BAO\SuccessfulResponse(content: [
         new OAT\JsonContent(properties: [new OAT\Property(property: 'data', type: 'object', properties: [
             new OAT\Property(property: 'id', type: 'integer', example: 1),
@@ -353,24 +338,16 @@ class CocktailController extends Controller
         $barMembership = $request->user()->getBarMembership($cocktail->bar_id);
         $userFavorite = $favoriteService->toggleFavorite(new FavoriteRequest($barMembership->id, $cocktail->id));
 
-        return response()->json([
-            'data' => ['id' => $id, 'is_favorited' => $userFavorite->isFavorited]
-        ]);
+        return response()->json(['data' => ['id' => $id, 'is_favorited' => $userFavorite->isFavorited]]);
     }
 
-    #[OAT\Post(path: '/cocktails/{id}/public-link', tags: ['Cocktails'], operationId: 'createCocktailPublicLink', description: 'Create a public link that can be shared', summary: 'Create a public ID', parameters: [
-        new BAO\Parameters\DatabaseIdParameter(),
-    ])]
-    #[BAO\SuccessfulResponse(content: [
-        new BAO\WrapObjectWithData(CocktailResource::class),
-    ])]
+    #[OAT\Post(path: '/cocktails/{id}/public-link', tags: ['Cocktails'], operationId: 'createCocktailPublicLink', description: 'Create a public link that can be shared', summary: 'Create a public ID', parameters: [new BAO\Parameters\DatabaseIdParameter()])]
+    #[BAO\SuccessfulResponse(content: [new BAO\WrapObjectWithData(CocktailResource::class)])]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     public function makePublic(CocktailService $cocktailService, Request $request, string $idOrSlug): Response
     {
-        $cocktail = Cocktail::where('id', $idOrSlug)
-            ->orWhere('slug', $idOrSlug)
-            ->firstOrFail();
+        $cocktail = Cocktail::where('id', $idOrSlug)->orWhere('slug', $idOrSlug)->firstOrFail();
 
         if ($request->user()->cannot('sharePublic', $cocktail)) {
             abort(403);
@@ -384,17 +361,13 @@ class CocktailController extends Controller
         return new Response(status: 201, headers: ['Location' => route('public.cocktails.show', [$cocktail->bar_id, $cocktail->slug], false)]);
     }
 
-    #[OAT\Delete(path: '/cocktails/{id}/public-link', tags: ['Cocktails'], operationId: 'deleteCocktailPublicLink', description: 'Delete a cocktail public link', summary: 'Delete public link', parameters: [
-        new BAO\Parameters\DatabaseIdParameter(),
-    ])]
+    #[OAT\Delete(path: '/cocktails/{id}/public-link', tags: ['Cocktails'], operationId: 'deleteCocktailPublicLink', description: 'Delete a cocktail public link', summary: 'Delete public link', parameters: [new BAO\Parameters\DatabaseIdParameter()])]
     #[OAT\Response(response: 204, description: 'Successful response')]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     public function makePrivate(CocktailService $cocktailService, Request $request, string $idOrSlug): Response
     {
-        $cocktail = Cocktail::where('id', $idOrSlug)
-            ->orWhere('slug', $idOrSlug)
-            ->firstOrFail();
+        $cocktail = Cocktail::where('id', $idOrSlug)->orWhere('slug', $idOrSlug)->firstOrFail();
 
         if ($request->user()->cannot('edit', $cocktail)) {
             abort(403);
@@ -425,9 +398,7 @@ class CocktailController extends Controller
     #[BAO\NotFoundResponse]
     public function share(Request $request, string $idOrSlug): JsonResponse
     {
-        $cocktail = Cocktail::where('id', $idOrSlug)
-            ->orWhere('slug', $idOrSlug)
-            ->firstOrFail();
+        $cocktail = Cocktail::where('id', $idOrSlug)->orWhere('slug', $idOrSlug)->firstOrFail();
 
         if ($request->user()->cannot('show', $cocktail)) {
             abort(403);
@@ -437,49 +408,33 @@ class CocktailController extends Controller
 
         $type = $request->input('type', 'json');
         $units = Units::tryFrom($request->input('units', ''));
-
         $data = SchemaExternal::fromCocktailModel($cocktail, $units);
-
         $shareContent = null;
 
         if ($type === 'json') {
             $shareContent = json_encode($data->toSchema4Array(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
-
         if ($type === 'json-ld') {
             $shareContent = $data->cocktail->toJSONLD();
         }
-
         if ($type === 'yaml' || $type === 'yml') {
             $shareContent = $data->toYAML();
         }
-
         if ($type === 'xml') {
             $shareContent = $data->toXML();
         }
-
         if ($type === 'markdown' || $type === 'md') {
             $shareContent = $data->toMarkdown();
         }
-
         if ($shareContent === null) {
             abort(400, 'Requested type "' . $type . '" not supported');
         }
 
-        return response()->json([
-            'data' => [
-                'type' => $type,
-                'content' => $shareContent,
-            ]
-        ]);
+        return response()->json(['data' => ['type' => $type, 'content' => $shareContent]]);
     }
 
-    #[OAT\Get(path: '/cocktails/{id}/similar', tags: ['Cocktails'], operationId: 'showSimilarCocktails', description: 'Shows similar cocktails to the given cocktail. Prefers cocktails with same base ingredient.', summary: 'Show similar cocktails', parameters: [
-        new BAO\Parameters\DatabaseIdParameter(),
-    ])]
-    #[BAO\SuccessfulResponse(content: [
-        new BAO\WrapItemsWithData(CocktailResource::class),
-    ])]
+    #[OAT\Get(path: '/cocktails/{id}/similar', tags: ['Cocktails'], operationId: 'showSimilarCocktails', description: 'Shows similar cocktails to the given cocktail. Prefers cocktails with same base ingredient.', summary: 'Show similar cocktails', parameters: [new BAO\Parameters\DatabaseIdParameter()])]
+    #[BAO\SuccessfulResponse(content: [new BAO\WrapItemsWithData(CocktailResource::class)])]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     public function similar(InfrastructureCocktailService $cocktailRepo, Request $request, string $idOrSlug): JsonResource
@@ -492,12 +447,7 @@ class CocktailController extends Controller
 
         $relatedCocktailIds = $cocktailRepo->getSimilarCocktails($cocktail, $request->get('limit', 5));
         $relatedCocktails = Cocktail::whereIn('id', $relatedCocktailIds)
-            ->with(
-                'images',
-                'ratings',
-                'ingredients.ingredient.bar',
-                'bar.shelfIngredients',
-            )
+            ->with('images', 'ratings', 'ingredients.ingredient.bar', 'bar.shelfIngredients')
             ->get();
 
         return CocktailResource::collection($relatedCocktails);
@@ -512,9 +462,7 @@ class CocktailController extends Controller
     #[BAO\NotAuthorizedResponse]
     public function copy(string $idOrSlug, CocktailService $cocktailService, ImageUploadService $imageUploadService, ImageService $imageService, ImageStorageService $imageStorage, Request $request): Response
     {
-        $cocktail = Cocktail::where('slug', $idOrSlug)
-            ->orWhere('id', $idOrSlug)
-            ->firstOrFail();
+        $cocktail = Cocktail::where('slug', $idOrSlug)->orWhere('id', $idOrSlug)->firstOrFail();
 
         if ($request->user()->cannot('show', $cocktail) && $request->user()->cannot('create', Cocktail::class)) {
             abort(403);
@@ -557,9 +505,7 @@ class CocktailController extends Controller
     #[OAT\Get(path: '/cocktails/{id}/prices', tags: ['Cocktails'], operationId: 'getCocktailPrices', summary: 'Show cocktail prices', description: 'Show calculated prices categorized by bar price categories. Prices are calculated using ingredient prices. If price category is missing, the ingredients don\'t have a price in that category. If there are multiple prices in category, the minimum price is used. Keep in mind that the price is just an estimate and might not be accurate.', parameters: [
         new OAT\Parameter(name: 'id', in: 'path', required: true, description: 'Database id or slug of a resource', schema: new OAT\Schema(type: 'string')),
     ])]
-    #[BAO\SuccessfulResponse(content: [
-        new BAO\WrapItemsWithData(CocktailPriceResource::class),
-    ])]
+    #[BAO\SuccessfulResponse(content: [new BAO\WrapItemsWithData(CocktailPriceResource::class)])]
     #[BAO\NotAuthorizedResponse]
     #[BAO\NotFoundResponse]
     public function prices(Request $request, string $idOrSlug): JsonResource
@@ -579,18 +525,12 @@ class CocktailController extends Controller
             return CocktailPriceResource::collection([]);
         }
 
-        $currencies = $categories
-            ->pluck('currency')
-            ->filter()
-            ->unique()
-            ->values();
-
+        $currencies = $categories->pluck('currency')->filter()->unique()->values();
         if ($currencies->count() !== 1) {
             abort(422, 'Best available pricing requires all price categories in a bar to use the same currency.');
         }
 
         $currency = $currencies->first();
-
         if (!is_string($currency)) {
             abort(422, 'Unable to determine currency for best available pricing.');
         }
