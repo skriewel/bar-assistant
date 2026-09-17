@@ -21,6 +21,7 @@ final readonly class UpdateCocktail
         public float $dilution,
         public ?string $description,
         public ?string $source,
+        public ?string $publication,
         public ?string $garnish,
         public ?int $glassId,
         public ?int $methodId,
