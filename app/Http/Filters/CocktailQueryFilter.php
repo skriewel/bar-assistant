@@ -31,6 +31,7 @@ final class CocktailQueryFilter extends QueryBuilder
             ->allowedFilters([
                 AllowedFilter::exact('id'),
                 AllowedFilter::custom('name', new FilterNameSearch()),
+                AllowedFilter::partial('publication'),
                 AllowedFilter::partial('ingredient_name', 'ingredients.ingredient.name'),
                 AllowedFilter::exact('ingredient_substitute_id', 'ingredients.substitutes.ingredient.id'),
                 AllowedFilter::callback('ingredient_id', function ($query, $value) {
@@ -255,7 +256,6 @@ final class CocktailQueryFilter extends QueryBuilder
                 'reviews_count',
                 AllowedSort::callback('favorited_at', function ($query, bool $descending) use ($barMembership) {
                     $direction = $descending ? 'DESC' : 'ASC';
-
                     $query->leftJoin('cocktail_favorites AS cf', 'cf.cocktail_id', '=', 'cocktails.id')
                         ->where('cf.bar_membership_id', $barMembership->id)
                         ->orderBy('cf.updated_at', $direction);
