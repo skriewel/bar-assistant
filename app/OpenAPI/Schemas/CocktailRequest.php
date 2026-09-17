@@ -25,8 +25,10 @@ readonly class CocktailRequest
         public int $barId,
         #[OAT\Property(example: 'Cocktail description')]
         public ?string $description = null,
-        #[OAT\Property(example: 'Source of the recipe')]
+        #[OAT\Property(example: 'https://example.com/recipe')]
         public ?string $source = null,
+        #[OAT\Property(example: 'The PDT Cocktail Book')]
+        public ?string $publication = null,
         #[OAT\Property(example: 'Garnish')]
         public ?string $garnish = null,
         #[OAT\Property(example: 1, property: 'glass_id')]
@@ -67,6 +69,7 @@ readonly class CocktailRequest
             $barId ?? (int) bar()->id,
             $request->input('description'),
             $request->input('source'),
+            $request->input('publication'),
             $request->input('garnish'),
             $request->filled('glass_id') ? $request->integer('glass_id') : null,
             $request->filled('cocktail_method_id') ? $request->integer('cocktail_method_id') : null,
