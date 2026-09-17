@@ -87,6 +87,20 @@ final class IngredientHierarchyNodeTest extends TestCase
         $this->assertSame('1/', $scotch->getMaterializedPath()->toString());
     }
 
+    public function test_change_parent_allows_moving_under_sibling(): void
+    {
+        $barId = new BarId(77);
+
+        $beverages = $this->node($barId, 12, null, '');
+        $lemonSoda = $this->node($barId, 94, $beverages, '12/');
+        $softDrink = $this->node($barId, 6200, $beverages, '12/');
+
+        $lemonSoda->changeParent($softDrink);
+
+        $this->assertSame(6200, $lemonSoda->getParentId()->value);
+        $this->assertSame('12/6200/', $lemonSoda->getMaterializedPath()->toString());
+    }
+
     public function test_change_parent_to_null_makes_root(): void
     {
         $barId = new BarId(77);
@@ -160,9 +174,6 @@ final class IngredientHierarchyNodeTest extends TestCase
         $islay = $this->node($barId, 6, $scotch, '100/4/5/');
         $ardbeg = $this->node($barId, 7, $islay, '100/4/5/6/');
 
-        // Simulate moving scotch (id=5) from under whiskey (id=4) to under genever (id=100)
-        // oldBase = oldPath + scotchId = '100/4/' + '5/' = '100/4/5/'
-        // newBase = newPath + scotchId = '100/' + '5/' = '100/5/'
         $oldBase = MaterializedPath::fromString('100/4/5/');
         $newBase = MaterializedPath::fromString('100/5/');
 
@@ -175,7 +186,7 @@ final class IngredientHierarchyNodeTest extends TestCase
         $this->assertSame('100/5/6/', $ardbeg->getMaterializedPath()->toString());
     }
 
-    public function test_is_ancestor_of_detects_ancestor(): void
+    public function test_is_ancestor_of_detects_ancestor_by_node_id(): void
     {
         $barId = new BarId(1);
 
@@ -183,13 +194,29 @@ final class IngredientHierarchyNodeTest extends TestCase
         $B = $this->node($barId, 2, $A, '1/');
         $C = $this->node($barId, 3, $B, '1/2/');
 
-        // Root is NOT considered an ancestor per MaterializedPath semantics
-        $this->assertFalse($A->isAncestorOf($B));
-        $this->assertFalse($A->isAncestorOf($C));
-
+        $this->assertTrue($A->isAncestorOf($B));
+        $this->assertTrue($A->isAncestorOf($C));
         $this->assertTrue($B->isAncestorOf($C));
+
         $this->assertFalse($C->isAncestorOf($A));
         $this->assertFalse($B->isAncestorOf($A));
+        $this->assertFalse($B->isAncestorOf($B));
+    }
+
+    public function test_is_descendant_of_detects_ancestor_by_node_id(): void
+    {
+        $barId = new BarId(1);
+
+        $A = $this->node($barId, 1, null, '');
+        $B = $this->node($barId, 2, $A, '1/');
+        $C = $this->node($barId, 3, $B, '1/2/');
+
+        $this->assertTrue($B->isDescendantOf($A));
+        $this->assertTrue($C->isDescendantOf($A));
+        $this->assertTrue($C->isDescendantOf($B));
+
+        $this->assertFalse($A->isDescendantOf($B));
+        $this->assertFalse($B->isDescendantOf($B));
     }
 
     public function test_make_root_delegates_to_change_parent_with_null(): void
