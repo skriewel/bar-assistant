@@ -43,6 +43,7 @@ final class Cocktail implements Identity
         private ?MethodId $methodId = null,
         private ?string $description = null,
         private ?string $source = null,
+        private ?string $publication = null,
         private ?string $garnish = null,
         private ?Dilution $dilution = null,
         private array $ingredients = [],
@@ -64,6 +65,7 @@ final class Cocktail implements Identity
         ?string $description = null,
         ?string $garnish = null,
         ?string $source = null,
+        ?string $publication = null,
         ?Dilution $dilution = null,
         ?int $year = null,
         ?GlassId $glassId = null,
@@ -79,6 +81,7 @@ final class Cocktail implements Identity
             dilution: $dilution,
             authors: $authors,
             source: $source,
+            publication: $publication,
             recordTimestamps: $recordTimestamps,
             description: $description,
             year: $year,
@@ -181,9 +184,7 @@ final class Cocktail implements Identity
         return $this;
     }
 
-    /**
-     * @return CocktailIngredient[]
-     */
+    /** @return CocktailIngredient[] */
     public function getIngredients(): array
     {
         return $this->ingredients;
@@ -221,14 +222,17 @@ final class Cocktail implements Identity
         return $this->source;
     }
 
+    public function getPublication(): ?string
+    {
+        return $this->publication;
+    }
+
     public function getDilution(): ?Dilution
     {
         return $this->dilution;
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function getTags(): array
     {
         return $this->tags;
@@ -252,9 +256,7 @@ final class Cocktail implements Identity
         return $this;
     }
 
-    /**
-     * @return UtensilId[]
-     */
+    /** @return UtensilId[] */
     public function getUtensils(): array
     {
         return $this->utensils;
@@ -346,6 +348,7 @@ final class Cocktail implements Identity
         ?MethodId $methodId = null,
         ?string $description = null,
         ?string $source = null,
+        ?string $publication = null,
         ?string $garnish = null,
         ?Dilution $dilution = null,
         ?CocktailId $variantOf = null,
@@ -361,6 +364,7 @@ final class Cocktail implements Identity
         $this->garnish = $garnish;
         $this->dilution = $dilution;
         $this->source = $source;
+        $this->publication = $publication;
         $this->description = $description;
         $this->year = $year;
         $this->glassId = $glassId;
@@ -379,9 +383,7 @@ final class Cocktail implements Identity
         return $this;
     }
 
-    /**
-     * @param ImageId[] $images
-     */
+    /** @param ImageId[] $images */
     public function copyTo(BarId $barId, UserId $userId, array $images = []): self
     {
         if ($this->isTransient()) {
@@ -398,6 +400,7 @@ final class Cocktail implements Identity
             description: $this->getDescription(),
             garnish: $this->getGarnish(),
             source: $this->getSource(),
+            publication: $this->getPublication(),
             dilution: $this->getDilution(),
             year: $this->getYear(),
             author: $this->getAuthor(),
