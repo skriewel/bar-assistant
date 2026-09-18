@@ -481,6 +481,7 @@ class FromDataPack
                 'description' => $externalCocktail->description,
                 'garnish' => $externalCocktail->garnish,
                 'source' => $externalCocktail->source,
+                'publication' => $externalCocktail->publication,
                 'abv' => $externalCocktail->abv,
                 'created_user_id' => $user->id,
                 'glass_id' => $dbGlasses[mb_strtolower($externalCocktail->glass ?? '', 'UTF-8')] ?? null,
