@@ -142,6 +142,7 @@ final readonly class FromSchema
                 dilution: $dilution,
                 description: $schema->cocktail->description,
                 source: $schema->cocktail->source,
+                publication: $schema->cocktail->publication,
                 garnish: $schema->cocktail->garnish,
                 glassId: $glassId,
                 methodId: $methodId,
@@ -151,6 +152,7 @@ final readonly class FromSchema
                 utensils: [],
                 parentCocktailId: null,
                 year: null,
+                author: $schema->cocktail->author,
             ));
 
             return Cocktail::findOrFail($existingCocktail);
@@ -164,6 +166,7 @@ final readonly class FromSchema
             dilution: $dilution,
             description: $schema->cocktail->description,
             source: $schema->cocktail->source,
+            publication: $schema->cocktail->publication,
             garnish: $schema->cocktail->garnish,
             glassId: $glassId,
             methodId: $methodId,
@@ -173,6 +176,7 @@ final readonly class FromSchema
             utensils: [],
             parentCocktailId: null,
             year: null,
+            author: $schema->cocktail->author,
         ))->id);
     }
 }
