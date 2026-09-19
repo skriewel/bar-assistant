@@ -52,9 +52,40 @@ final readonly class UnitValueObject implements Stringable, JsonSerializable
 
     public function isBarspoon(): bool
     {
-        $matches = $this->units['barspoon'];
+        return in_array($this->value, ['barspoon', 'barspoons', 'bsp', 'bsp.', 'bs', 'bs.'], true);
+    }
 
-        return str_contains($this->value, 'spoon') || in_array($this->value, $matches, true);
+    public function isTeaspoon(): bool
+    {
+        return in_array($this->value, ['tsp', 'tsp.', 'tspn', 'teaspoon', 'teaspoons'], true);
+    }
+
+    public function isTablespoon(): bool
+    {
+        return in_array($this->value, ['tbsp', 'tbsp.', 'tbspn', 'tablespoon', 'tablespoons'], true);
+    }
+
+    public function getVolumeInMlFactor(): ?float
+    {
+        if ($this->isDash()) {
+            return 0.3125;
+        }
+
+        if ($this->isBarspoon() || $this->isTeaspoon()) {
+            return 5.0;
+        }
+
+        if ($this->isTablespoon()) {
+            return 15.0;
+        }
+
+        return match ($this->value) {
+            'ml' => 1.0,
+            'cl' => 10.0,
+            'oz' => 30.0,
+            'l' => 1000.0,
+            default => null,
+        };
     }
 
     public function isConvertable(): bool

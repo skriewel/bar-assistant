@@ -65,6 +65,9 @@ final readonly class CocktailRecipeTextImportHandler
             - amount_max: only for ranges, otherwise null
             - units: normalized unit string
             - note: optional clarification (brand, preparation, estimate) or null
+            - normalize teaspoon/teaspoons to "tsp"
+            - normalize tablespoon/tablespoons to "tbsp"
+            - normalize bar spoon/barspoon to "barspoon"; never interchange tsp, tbsp and barspoon
 
             Range handling:
             - "1-2 oz" => amount=1, amount_max=2, units="oz"

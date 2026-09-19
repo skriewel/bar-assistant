@@ -24,7 +24,13 @@ abstract class AbstractSite implements Site
         protected readonly string $content = '',
     ) {
         $this->crawler = new Crawler($content);
-        $this->ingredientParser = ParserFactory::make();
+        // recipe-utils <= 0.17 groups teaspoon/tablespoon aliases under
+        // "barspoon". Define the distinct units first so UnitParser matches
+        // them before the package defaults.
+        $this->ingredientParser = ParserFactory::make([
+            'tsp' => ['tsp', 'tsp.', 'tspn', 'teaspoon', 'teaspoons'],
+            'tbsp' => ['tbsp', 'tbsp.', 'tbspn', 'tablespoon', 'tablespoons'],
+        ]);
     }
 
     /**

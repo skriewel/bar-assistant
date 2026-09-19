@@ -19,6 +19,22 @@ final readonly class AmountValueObject implements Stringable
 
     public function convertTo(UnitValueObject $toUnits): self
     {
+        $fromMlFactor = $this->units->getVolumeInMlFactor();
+        $toMlFactor = $toUnits->getVolumeInMlFactor();
+
+        if ($fromMlFactor !== null && $toMlFactor !== null) {
+            $convertedMinAmount = ($this->amountMin * $fromMlFactor) / $toMlFactor;
+            $convertedMaxAmount = $this->amountMax !== null
+                ? ($this->amountMax * $fromMlFactor) / $toMlFactor
+                : null;
+
+            return new self(
+                round($convertedMinAmount, 4),
+                $toUnits,
+                $convertedMaxAmount !== null ? round($convertedMaxAmount, 4) : null,
+            );
+        }
+
         $fromUnitsEnum = $this->units->getAsEnum();
         $toUnitsEnum = $toUnits->getAsEnum();
 
@@ -28,7 +44,7 @@ final readonly class AmountValueObject implements Stringable
 
         $convertedMinAmount = Converter::convertAmount(AmountValue::from($this->amountMin), $fromUnitsEnum, $toUnitsEnum);
         $convertedMaxAmount = null;
-        if ($this->amountMax) {
+        if ($this->amountMax !== null) {
             $convertedMaxAmount = Converter::convertAmount(AmountValue::from($this->amountMax), $fromUnitsEnum, $toUnitsEnum);
         }
 

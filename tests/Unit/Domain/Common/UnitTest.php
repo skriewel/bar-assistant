@@ -68,9 +68,22 @@ final class UnitTest extends TestCase
 
         $bsp = Unit::from('bsp');
         $this->assertTrue($bsp->isBarspoon());
+    }
 
-        $spoon = Unit::from('teaspoon');
-        $this->assertTrue($spoon->isBarspoon());
+    public function test_teaspoon_and_tablespoon_are_not_barspoons(): void
+    {
+        $this->assertFalse(Unit::from('teaspoon')->isBarspoon());
+        $this->assertFalse(Unit::from('tablespoon')->isBarspoon());
+        $this->assertTrue(Unit::from('teaspoon')->isTeaspoon());
+        $this->assertTrue(Unit::from('tablespoon')->isTablespoon());
+    }
+
+    public function test_small_volume_unit_factors(): void
+    {
+        $this->assertSame(5.0, Unit::from('tsp')->getVolumeInMlFactor());
+        $this->assertSame(15.0, Unit::from('tbsp')->getVolumeInMlFactor());
+        $this->assertSame(5.0, Unit::from('barspoon')->getVolumeInMlFactor());
+        $this->assertSame(1000.0, Unit::from('l')->getVolumeInMlFactor());
     }
 
     public function test_is_barspoon_returns_false_for_non_barspoon_unit(): void

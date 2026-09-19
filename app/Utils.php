@@ -42,13 +42,9 @@ final class Utils
      */
     public static function calculateVolume(array $ingredients, Units $inUnits = Units::Ml): float
     {
-        // Convert all amounts to single unit
+        // Convert all known volume amounts to ml.
         $ingredients = array_map(function ($ingredient) {
-            if ($ingredient->units->value === 'ml') {
-                return $ingredient;
-            }
-
-            if ($ingredient->units->value === 'cl' || $ingredient->units->value === 'oz' || $ingredient->units->isDash() || $ingredient->units->isBarspoon()) {
+            if ($ingredient->units->getVolumeInMlFactor() !== null) {
                 return $ingredient->convertTo(new UnitValueObject('ml'));
             }
 

@@ -35,10 +35,12 @@ class UtilsTest extends TestCase
             new AmountValueObject(500, new UnitValueObject('topup')),
             new AmountValueObject(100, new UnitValueObject('unknown')),
             new AmountValueObject(2, new UnitValueObject('barspoon')),
+            new AmountValueObject(1, new UnitValueObject('tsp')),
+            new AmountValueObject(1, new UnitValueObject('tbsp')),
         ];
 
-        $this->assertSame(176.25, Utils::calculateVolume($ingredients));
-        $this->assertSame(17.63, Utils::calculateVolume($ingredients, Units::Cl));
-        $this->assertSame(5.88, Utils::calculateVolume($ingredients, Units::Oz));
+        $this->assertSame(196.25, Utils::calculateVolume($ingredients));
+        $this->assertSame(19.63, Utils::calculateVolume($ingredients, Units::Cl));
+        $this->assertSame(6.54, Utils::calculateVolume($ingredients, Units::Oz));
     }
 }

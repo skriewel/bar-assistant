@@ -32,9 +32,28 @@ final class AmountWithUnitsTest extends TestCase
 
         $converted = $amount->convertTo($mlUnit);
 
-        // Based on test failure, converter returns 30.0 for 1 oz to ml
         $this->assertEquals(30.0, $converted->amountMin);
         $this->assertSame('ml', $converted->units->value);
+    }
+
+    public function test_convert_small_volume_units(): void
+    {
+        $this->assertSame(
+            5.0,
+            AmountWithUnits::from(1.0, Unit::from('tsp'))->convertTo(Unit::from('ml'))->amountMin,
+        );
+        $this->assertSame(
+            15.0,
+            AmountWithUnits::from(1.0, Unit::from('tbsp'))->convertTo(Unit::from('ml'))->amountMin,
+        );
+        $this->assertSame(
+            5.0,
+            AmountWithUnits::from(1.0, Unit::from('barspoon'))->convertTo(Unit::from('ml'))->amountMin,
+        );
+        $this->assertSame(
+            1.0,
+            AmountWithUnits::from(3.0, Unit::from('tsp'))->convertTo(Unit::from('tbsp'))->amountMin,
+        );
     }
 
     public function test_convert_to_invalid_units_returns_original(): void
