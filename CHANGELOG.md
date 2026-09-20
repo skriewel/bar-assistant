@@ -30,10 +30,6 @@
     - Moved GET `/users/{id}/ingredients/recommend` to GET `/members/{id}/ingredients/recommend`
 
 ## New
-- Added `inventory.read` and `inventory.write` personal access token abilities for member inventories
-    - `inventory.read` can list the authenticated user's inventories and their ingredients
-    - `inventory.write` can create, rename and delete inventories and add/remove inventory ingredients
-    - `GET /profile` now accepts `inventory.read` so integrations can resolve the authenticated user ID
 - Added `is_bar_inventory_aware` to menu items
     - This will show if the menu item is aware of bar inventory, meaning it will show if the item is available or not based on bar shelf ingredients
 - You can now add amounts and units to ingredient parts

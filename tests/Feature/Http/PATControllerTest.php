@@ -43,12 +43,7 @@ class PATControllerTest extends TestCase
 
         $response = $this->postJson('/api/tokens', [
             'name' => 'My new token',
-            'abilities' => [
-                AbilityEnum::CocktailsRead->value,
-                AbilityEnum::IngredientsWrite->value,
-                AbilityEnum::InventoryRead->value,
-                AbilityEnum::InventoryWrite->value,
-            ],
+            'abilities' => [AbilityEnum::CocktailsRead->value, AbilityEnum::IngredientsWrite->value],
             'expires_at' => Carbon::now()->addMonth()->toAtomString(),
         ]);
 
@@ -56,15 +51,7 @@ class PATControllerTest extends TestCase
         $response->assertJson(
             fn (AssertableJson $json) => $json->has('data.token')
         );
-        $this->assertDatabaseHas('personal_access_tokens', [
-            'name' => 'My new token',
-            'abilities' => json_encode([
-                AbilityEnum::CocktailsRead->value,
-                AbilityEnum::IngredientsWrite->value,
-                AbilityEnum::InventoryRead->value,
-                AbilityEnum::InventoryWrite->value,
-            ]),
-        ]);
+        $this->assertDatabaseHas('personal_access_tokens', ['name' => 'My new token', 'abilities' => json_encode([AbilityEnum::CocktailsRead->value, AbilityEnum::IngredientsWrite->value])]);
     }
 
     public function test_delete_token(): void
