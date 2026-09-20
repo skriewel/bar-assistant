@@ -55,6 +55,7 @@ class CocktailController extends Controller
             new OAT\Property(property: 'tag_id', type: 'string', description: 'Filter by tag ID(s)'),
             new OAT\Property(property: 'created_user_id', type: 'string', description: 'Filter by creator ID(s)'),
             new OAT\Property(property: 'author', type: 'string', description: 'Filter by cocktail author name(s). Comma separated list of author names. Exact match.'),
+            new OAT\Property(property: 'origin_bar', type: 'string', description: 'Filter by origin bar name(s). Comma separated list of origin bar names. Exact match.'),
             new OAT\Property(property: 'glass_id', type: 'string', description: 'Filter by glass ID(s)'),
             new OAT\Property(property: 'cocktail_method_id', type: 'string', description: 'Filter by cocktail method ID(s)'),
             new OAT\Property(property: 'collection_id', type: 'string', description: 'Filter by collection ID(s)'),
@@ -89,8 +90,11 @@ class CocktailController extends Controller
     ])]
     #[BAO\SuccessfulResponse(content: [
         new BAO\PaginateData(CocktailResource::class, [
-            new OAT\Property(property: 'filters', type: 'object', required: ['authors'], properties: [
-                new OAT\Property(property: 'authors', type: 'array', required: ['name'], items: new OAT\Items(type: 'object', properties: [
+            new OAT\Property(property: 'filters', type: 'object', required: ['authors', 'origin_bars'], properties: [
+                new OAT\Property(property: 'authors', type: 'array', items: new OAT\Items(type: 'object', required: ['name'], properties: [
+                    new OAT\Property(property: 'name', type: 'string'),
+                ])),
+                new OAT\Property(property: 'origin_bars', type: 'array', items: new OAT\Items(type: 'object', required: ['name'], properties: [
                     new OAT\Property(property: 'name', type: 'string'),
                 ])),
             ]),
@@ -116,10 +120,20 @@ class CocktailController extends Controller
             ->pluck('author')
             ->map(fn ($name) => ['name' => $name]);
 
+        $originBars = DB::table('cocktails')
+            ->where('bar_id', bar()->id)
+            ->whereNotNull('origin_bar')
+            ->where('origin_bar', '!=', '')
+            ->distinct()
+            ->orderBy('origin_bar')
+            ->pluck('origin_bar')
+            ->map(fn ($name) => ['name' => $name]);
+
         return CocktailResource::collection($cocktails->withQueryString())->additional([
             'meta' => [
                 'filters' => [
                     'authors' => $authors,
+                    'origin_bars' => $originBars,
                 ],
             ],
         ]);
@@ -224,6 +238,7 @@ class CocktailController extends Controller
             parentCocktailId: $cocktailRequest->parentCocktailId,
             year: $cocktailRequest->year,
             author: $cocktailRequest->author,
+            originBar: $cocktailRequest->originBar,
         ));
 
         return new Response(status: 201, headers: ['Location' => route('cocktails.show', $cocktailResult->slug, false)]);
@@ -308,6 +323,7 @@ class CocktailController extends Controller
             parentCocktailId: $cocktailRequest->parentCocktailId,
             year: $cocktailRequest->year,
             author: $cocktailRequest->author,
+            originBar: $cocktailRequest->originBar,
         ));
 
         return new Response(status: 204);

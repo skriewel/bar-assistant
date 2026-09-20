@@ -73,6 +73,7 @@ class FromDataPack
             'cocktail_methods' => 'base_methods.json',
             'utensils' => 'base_utensils.json',
             'price_categories' => 'base_price_categories.json',
+            'taste_descriptors' => 'base_taste_descriptors.json',
         ];
 
         foreach ($baseDataFiles as $table => $file) {
@@ -490,6 +491,7 @@ class FromDataPack
                 'updated_at' => $externalCocktail->updatedAt,
                 'year' => $externalCocktail->year,
                 'author' => $externalCocktail->author,
+                'origin_bar' => $externalCocktail->originBar,
             ];
 
             if ($externalCocktail->parentCocktailId) {

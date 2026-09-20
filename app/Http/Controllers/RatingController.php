@@ -9,9 +9,10 @@ use Illuminate\Http\Response;
 use OpenApi\Attributes as OAT;
 use Kami\Cocktail\OpenAPI as BAO;
 use Kami\Cocktail\Models\Cocktail;
+use BarAssistant\Domain\Rating\RateableType;
 use Kami\Cocktail\Http\Requests\RatingRequest;
 use BarAssistant\Application\Rating\RatingService;
-use BarAssistant\Application\Rating\DTO\RateCocktailRequest;
+use BarAssistant\Application\Rating\DTO\RateRequest;
 
 class RatingController extends Controller
 {
@@ -41,9 +42,10 @@ class RatingController extends Controller
             abort(403);
         }
 
-        $ratingService->rate(new RateCocktailRequest(
+        $ratingService->rate(new RateRequest(
             barMembershipId: $barMembership->id,
-            cocktailId: $cocktail->id,
+            rateableId: $cocktail->id,
+            type: RateableType::Cocktail,
             value: (float) $request->post('rating'),
         ));
 
@@ -69,7 +71,7 @@ class RatingController extends Controller
             abort(403);
         }
 
-        $ratingService->removeRating($barMembership->id, $cocktail->id);
+        $ratingService->removeRating($barMembership->id, $cocktail->id, RateableType::Cocktail);
 
         return new Response(null, 204);
     }

@@ -47,6 +47,8 @@ readonly class CocktailRequest
         public ?int $year = null,
         #[OAT\Property(example: 'Jerry Thomas', property: 'author')]
         public ?string $author = null,
+        #[OAT\Property(example: 'American Bar, London', property: 'origin_bar')]
+        public ?string $originBar = null,
     ) {
     }
 
@@ -77,6 +79,7 @@ readonly class CocktailRequest
             $request->filled('parent_cocktail_id') ? $request->integer('parent_cocktail_id') : null,
             $request->filled('year') ? $request->integer('year') : null,
             $request->has('author') ? $request->string('author')->value() : null,
+            $request->has('origin_bar') ? $request->string('origin_bar')->value() : null,
         );
     }
 }

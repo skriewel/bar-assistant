@@ -30,6 +30,7 @@ final readonly class CreateCocktail
         public ?int $parentCocktailId,
         public ?int $year,
         public ?string $author = null,
+        public ?string $originBar = null,
     ) {
     }
 }

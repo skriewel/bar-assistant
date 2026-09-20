@@ -55,8 +55,15 @@ final readonly class CocktailService
                         FROM
                             ingredients
                         WHERE
-                            (ingredients.parent_ingredient_id = cocktail_ingredients.ingredient_id OR materialized_path LIKE cocktail_ingredients.ingredient_id || \'/%\')
-                            AND id IN (' . str_repeat('?,', count($ingredientIds) - 1) . '?)
+                            (
+                                ingredients.parent_ingredient_id = cocktail_ingredients.ingredient_id
+                                OR ingredients.materialized_path LIKE (
+                                    SELECT COALESCE(ancestor.materialized_path, \'\') || ancestor.id || \'/%\'
+                                    FROM ingredients AS ancestor
+                                    WHERE ancestor.id = cocktail_ingredients.ingredient_id
+                                )
+                            )
+                            AND ingredients.id IN (' . str_repeat('?,', count($ingredientIds) - 1) . '?)
                     ) THEN ingredients.id
                     ELSE NULL
                 END) as matching_ingredients',

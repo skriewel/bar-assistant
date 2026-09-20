@@ -197,7 +197,11 @@ class Cocktail extends BaseModel implements UploadableInterface, IsExternalized
     {
         $ingredients = $this->ingredients->map(fn ($i) => $i->getAmount())->toArray();
 
-        return Utils::calculateVolume($ingredients);
+        /** @var CocktailMethod|null $method */
+        $method = $this->method;
+        $dilutionPercentage = $method !== null ? (float) $method->dilution_percentage : 0.0;
+
+        return Utils::calculateVolume($ingredients, dilutionPercentage: $dilutionPercentage);
     }
 
     public function getAlcoholUnits(): float

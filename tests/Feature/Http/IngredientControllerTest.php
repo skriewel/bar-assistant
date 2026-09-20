@@ -11,7 +11,9 @@ use Kami\Cocktail\Models\User;
 use Kami\Cocktail\Models\Cocktail;
 use Kami\Cocktail\Models\Ingredient;
 use Kami\Cocktail\Models\BarIngredient;
+use Kami\Cocktail\Models\BarMembership;
 use Kami\Cocktail\Models\UserIngredient;
+use Kami\Cocktail\Models\IngredientReview;
 use Kami\Cocktail\Models\UserShoppingList;
 use Kami\Cocktail\Models\CocktailIngredient;
 use Illuminate\Testing\Fluent\AssertableJson;
@@ -582,5 +584,182 @@ class IngredientControllerTest extends TestCase
 
         $response = $this->getJson('/api/ingredients?filter[descendants_of]=' . $gin->id);
         $response->assertJsonCount(1, 'data');
+    }
+
+    public function test_ingredient_with_ratings_scope_selects_rating_columns(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+        $otherMembership = BarMembership::factory()->recycle($membership->bar)->create();
+
+        $ingredient = Ingredient::factory()->for($membership->bar)->create();
+        $ingredient->rate(5, $membership->id);
+        $ingredient->rate(3, $otherMembership->id);
+
+        $result = Ingredient::query()
+            ->withRatings($membership->user->id)
+            ->where('ingredients.id', $ingredient->id)
+            ->firstOrFail();
+
+        $this->assertSame(4.0, (float) $result->average_rating);
+        $this->assertSame(5.0, (float) $result->user_rating);
+    }
+
+    public function test_list_ingredients_filter_by_user_rating_min(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        $whole = Ingredient::factory()->for($membership->bar)->create(['name' => 'Whole', 'strength' => 40]);
+        $half = Ingredient::factory()->for($membership->bar)->create(['name' => 'Half', 'strength' => 10]);
+        $low = Ingredient::factory()->for($membership->bar)->create(['name' => 'Low', 'strength' => 5]);
+        Ingredient::factory()->for($membership->bar)->create(['name' => 'Unrated', 'strength' => 45]);
+
+        $whole->rate(4, $membership->id);
+        $half->rate(3.5, $membership->id);
+        $low->rate(3, $membership->id);
+
+        // An ingredient in another bar must not leak in
+        $otherMembership = $this->setupBarMembership();
+        $otherIngredient = Ingredient::factory()->for($otherMembership->bar)->create(['name' => 'Other bar']);
+        $otherIngredient->rate(5, $otherMembership->id);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        // Whole-star threshold
+        $response = $this->getJson('/api/ingredients?filter[user_rating_min]=4');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Whole');
+
+        // Half-star threshold
+        $response = $this->getJson('/api/ingredients?filter[user_rating_min]=3.5');
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+
+        // Unrated ingredients are excluded even at the lowest threshold
+        $response = $this->getJson('/api/ingredients?filter[user_rating_min]=1');
+        $response->assertOk();
+        $response->assertJsonCount(3, 'data');
+        $response->assertJsonMissing(['name' => 'Unrated']);
+
+        // Empty value is a no-op
+        $response = $this->getJson('/api/ingredients?filter[user_rating_min]=');
+        $response->assertOk();
+        $response->assertJsonCount(4, 'data');
+
+        // Combines with another filter using AND
+        $response = $this->getJson('/api/ingredients?filter[user_rating_min]=1&filter[strength_min]=40');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Whole');
+    }
+
+    public function test_list_ingredients_filter_by_average_rating_min(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+        $otherMembership = BarMembership::factory()->recycle($membership->bar)->create();
+
+        $high = Ingredient::factory()->for($membership->bar)->create(['name' => 'High', 'strength' => 40]);
+        $high->rate(5, $membership->id);
+        $high->rate(3, $otherMembership->id);
+
+        $low = Ingredient::factory()->for($membership->bar)->create(['name' => 'Low', 'strength' => 10]);
+        $low->rate(2, $membership->id);
+
+        Ingredient::factory()->for($membership->bar)->create(['name' => 'Unrated', 'strength' => 45]);
+
+        // An ingredient in another bar must not leak in
+        $otherBarMembership = $this->setupBarMembership();
+        $otherIngredient = Ingredient::factory()->for($otherBarMembership->bar)->create(['name' => 'Other bar']);
+        $otherIngredient->rate(5, $otherBarMembership->id);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        // Half-star average threshold
+        $response = $this->getJson('/api/ingredients?filter[average_rating_min]=3.5');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'High');
+
+        // Unrated ingredients are excluded even at the lowest threshold
+        $response = $this->getJson('/api/ingredients?filter[average_rating_min]=1');
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+        $response->assertJsonMissing(['name' => 'Unrated']);
+
+        // Empty value is a no-op
+        $response = $this->getJson('/api/ingredients?filter[average_rating_min]=');
+        $response->assertOk();
+        $response->assertJsonCount(3, 'data');
+
+        // Combines with another filter using AND
+        $response = $this->getJson('/api/ingredients?filter[average_rating_min]=1&filter[strength_min]=40');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'High');
+    }
+
+    public function test_list_ingredients_filter_by_review_recommendation(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        $recommended = Ingredient::factory()->for($membership->bar)->create(['name' => 'Recommended', 'strength' => 40]);
+        $decent = Ingredient::factory()->for($membership->bar)->create(['name' => 'Decent', 'strength' => 10]);
+        $avoided = Ingredient::factory()->for($membership->bar)->create(['name' => 'Avoided']);
+        $nullVerdict = Ingredient::factory()->for($membership->bar)->create(['name' => 'Null verdict']);
+        Ingredient::factory()->for($membership->bar)->create(['name' => 'No reviews']);
+
+        IngredientReview::factory()->create(['ingredient_id' => $recommended->id, 'bar_membership_id' => $membership->id, 'recommendation' => 'recommend']);
+        IngredientReview::factory()->create(['ingredient_id' => $decent->id, 'bar_membership_id' => $membership->id, 'recommendation' => 'decent']);
+        IngredientReview::factory()->create(['ingredient_id' => $avoided->id, 'bar_membership_id' => $membership->id, 'recommendation' => 'avoid']);
+        IngredientReview::factory()->create(['ingredient_id' => $nullVerdict->id, 'bar_membership_id' => $membership->id, 'recommendation' => null]);
+
+        // A matching review in another bar must not leak in
+        $otherMembership = $this->setupBarMembership();
+        $otherIngredient = Ingredient::factory()->for($otherMembership->bar)->create(['name' => 'Other bar']);
+        IngredientReview::factory()->create(['ingredient_id' => $otherIngredient->id, 'bar_membership_id' => $otherMembership->id, 'recommendation' => 'recommend']);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        // Single value
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=recommend');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Recommended');
+
+        // Multiple values are unioned (OR)
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=recommend,decent');
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+        $response->assertJsonMissing(['name' => 'Avoided']);
+
+        // Ingredients with no matching review are excluded
+        $response->assertJsonMissing(['name' => 'No reviews']);
+        $response->assertJsonMissing(['name' => 'Null verdict']);
+
+        // Empty value is a no-op
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=');
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+
+        // Unrecognized values are ignored
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=maybe,recommend');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Recommended');
+
+        // Only unrecognized values is a no-op
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=maybe');
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+
+        // Combines with another filter using AND
+        $response = $this->getJson('/api/ingredients?filter[review_recommendation]=recommend,decent&filter[strength_min]=40');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Recommended');
     }
 }

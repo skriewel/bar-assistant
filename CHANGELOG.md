@@ -1,3 +1,14 @@
+# v6.8.0
+## New
+- Added historical bar origin field to cocktail
+- Added ingredient reviews
+
+## Fixes
+- Correctly match unspecified cocktail ingredients when variants are in shelf
+- Dilution percentage is now considered when calculating total cocktail volume
+- Fixed unable to change existing invalid currency code on bar
+- Fixed missing access check for cocktail in cocktail tags generation
+
 # v6.7.0
 ## New
 - Added menu edit and view permissions to PAT

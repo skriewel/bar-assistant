@@ -534,6 +534,85 @@ class CocktailControllerTest extends TestCase
         $response->assertNoContent();
     }
 
+    public function test_cocktail_create_and_update_with_origin_bar(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        $ingredient = Ingredient::factory()->for($membership->bar)->create();
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        $response = $this->postJson('/api/cocktails', [
+            'name' => 'Martini',
+            'instructions' => "1. Stir\n2. Strain",
+            'origin_bar' => 'American Bar, London',
+            'ingredients' => [
+                ['ingredient_id' => $ingredient->id, 'amount' => 60, 'units' => 'ml', 'sort' => 1],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+
+        $cocktail = Cocktail::where('bar_id', $membership->bar_id)->where('name', 'Martini')->firstOrFail();
+        $this->assertSame('American Bar, London', $cocktail->origin_bar);
+
+        $showResponse = $this->getJson('/api/cocktails/' . $cocktail->id);
+        $showResponse->assertOk();
+        $showResponse->assertJsonPath('data.origin_bar', 'American Bar, London');
+
+        $updateResponse = $this->putJson('/api/cocktails/' . $cocktail->id, [
+            'name' => 'Martini',
+            'instructions' => "1. Stir\n2. Strain",
+            'origin_bar' => "Harry's New York Bar, Paris",
+            'ingredients' => [
+                ['ingredient_id' => $ingredient->id, 'amount' => 60, 'units' => 'ml', 'sort' => 1],
+            ],
+        ]);
+
+        $updateResponse->assertNoContent();
+        $this->assertSame("Harry's New York Bar, Paris", $cocktail->fresh()->origin_bar);
+    }
+
+    public function test_cocktail_origin_bar_is_optional_and_must_be_a_string(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        $ingredient = Ingredient::factory()->for($membership->bar)->create();
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        $response = $this->postJson('/api/cocktails', [
+            'name' => 'No Origin',
+            'instructions' => "1. Shake",
+            'ingredients' => [
+                ['ingredient_id' => $ingredient->id, 'amount' => 30, 'units' => 'ml', 'sort' => 1],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+
+        $cocktail = Cocktail::where('bar_id', $membership->bar_id)->where('name', 'No Origin')->firstOrFail();
+        $this->assertNull($cocktail->origin_bar);
+
+        $this->getJson('/api/cocktails/' . $cocktail->id)
+            ->assertOk()
+            ->assertJsonPath('data.origin_bar', null);
+
+        $invalid = $this->postJson('/api/cocktails', [
+            'name' => 'Invalid Origin',
+            'instructions' => "1. Shake",
+            'origin_bar' => ['not', 'a', 'string'],
+            'ingredients' => [
+                ['ingredient_id' => $ingredient->id, 'amount' => 30, 'units' => 'ml', 'sort' => 1],
+            ],
+        ]);
+
+        $invalid->assertUnprocessable();
+        $invalid->assertJsonValidationErrors(['origin_bar']);
+    }
+
     public function test_cocktail_delete_response(): void
     {
         $this->setupBar();
@@ -1199,6 +1278,106 @@ class CocktailControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
         $response->assertJsonPath('meta.filters.authors.0.name', 'Jerry Thomas');
+    }
+
+    public function test_cocktails_filter_by_origin_bar(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        // Cocktails in the bar
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Cocktail 1', 'origin_bar' => 'American Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Cocktail 2', 'origin_bar' => 'Harrys Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Cocktail 3', 'origin_bar' => 'Connaught Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Cocktail Null', 'origin_bar' => null]);
+
+        // Cocktail in another bar with same origin bar
+        $otherBar = Bar::factory()->create();
+        Cocktail::factory()->recycle($otherBar)->create(['name' => 'Cocktail Other', 'origin_bar' => 'American Bar']);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        // Single origin bar match
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=American Bar');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Cocktail 1');
+
+        // Multiple origin bars (OR match)
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=American Bar,Harrys Bar');
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+
+        // Exact match required (partial does not match)
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=American');
+        $response->assertOk();
+        $response->assertJsonCount(0, 'data');
+
+        // Nonexistent origin bar
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=Nonexistent Bar');
+        $response->assertOk();
+        $response->assertJsonCount(0, 'data');
+
+        // Cocktails with null origin bar are never returned when the filter is active
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=null');
+        $response->assertOk();
+        $response->assertJsonCount(0, 'data');
+
+        // Omitted/empty value is a no-op (returns all 4 cocktails in this bar)
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=');
+        $response->assertOk();
+        $response->assertJsonCount(4, 'data');
+    }
+
+    public function test_cocktails_meta_filters_origin_bars(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        // Cocktails in the bar (with duplicate origin bar, null origin bar and empty origin bar)
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink 1', 'origin_bar' => 'American Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink 2', 'origin_bar' => 'Harrys Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink 3', 'origin_bar' => 'American Bar']);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink 4', 'origin_bar' => null]);
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink 5', 'origin_bar' => '']);
+
+        // Cocktail in another bar
+        $otherBar = Bar::factory()->create();
+        Cocktail::factory()->recycle($otherBar)->create(['name' => 'Other Drink', 'origin_bar' => 'Connaught Bar']);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        // Unfiltered request lists distinct origin bars for this bar only, sorted alphabetically
+        $response = $this->getJson('/api/cocktails');
+        $response->assertOk();
+        $response->assertJsonPath('meta.filters.origin_bars', [
+            ['name' => 'American Bar'],
+            ['name' => 'Harrys Bar'],
+        ]);
+
+        // Filtered request still includes all distinct origin bars for the bar
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=American Bar');
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+        $response->assertJsonPath('meta.filters.origin_bars', [
+            ['name' => 'American Bar'],
+            ['name' => 'Harrys Bar'],
+        ]);
+    }
+
+    public function test_cocktails_filter_origin_bar_accessible_to_non_admin_member(): void
+    {
+        $membership = $this->setupBarMembership(UserRoleEnum::General);
+        $this->actingAs($membership->user);
+
+        Cocktail::factory()->recycle($membership->bar)->create(['name' => 'Drink A', 'origin_bar' => 'American Bar']);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        $response = $this->getJson('/api/cocktails?filter[origin_bar]=American Bar');
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('meta.filters.origin_bars.0.name', 'American Bar');
     }
 
     public function test_cocktail_show_returns_half_value_user_and_average_ratings(): void

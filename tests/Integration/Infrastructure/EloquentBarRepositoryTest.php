@@ -103,6 +103,20 @@ final class EloquentBarRepositoryTest extends TestCase
         $this->assertSame('Find me', (string) $foundBar->getName());
     }
 
+    public function test_it_finds_bar_with_invalid_currency_code(): void
+    {
+        $repository = new EloquentBarRepository();
+        $persistedBar = $this->createPersistedBar('Invalid currency');
+        $model = BarModel::find($persistedBar->getId()->value);
+        $model->settings = ['default_currency' => '$'];
+        $model->save();
+
+        $foundBar = $repository->findById($persistedBar->getId());
+
+        $this->assertNotNull($foundBar);
+        $this->assertNull($foundBar->getDefaultCurrency());
+    }
+
     public function test_it_returns_null_for_non_existent_bar(): void
     {
         $repository = new EloquentBarRepository();

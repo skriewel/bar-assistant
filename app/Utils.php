@@ -38,9 +38,10 @@ final class Utils
      * Calculate approximate cocktail volume
      *
      * @param array<AmountValueObject|null> $ingredients
+     * @param float $dilutionPercentage Percentage of volume added through dilution
      * @return float
      */
-    public static function calculateVolume(array $ingredients, Units $inUnits = Units::Ml): float
+    public static function calculateVolume(array $ingredients, Units $inUnits = Units::Ml, float $dilutionPercentage = 0.0): float
     {
         // Convert all amounts to single unit
         $ingredients = array_map(function ($ingredient) {
@@ -58,6 +59,7 @@ final class Utils
         }, $ingredients);
 
         $volume = array_reduce(array_filter($ingredients), fn ($carry, $item) => $carry + $item->amountMin, 0.0);
+        $volume = $volume * (1 + ($dilutionPercentage / 100));
         $volume = match ($inUnits) {
             Units::Ml => $volume,
             Units::Cl => $volume / 10,
