@@ -47,6 +47,10 @@ final class EloquentMemberRepositoryTest extends TestCase
             'user_id' => $user->id,
             'user_role_id' => 3,
         ]);
+        $this->assertDatabaseHas('member_inventories', [
+            'bar_membership_id' => $savedMember->getId()?->value,
+            'name' => 'My Shelf',
+        ]);
         $this->assertDatabaseHas('user_shopping_lists', [
             'bar_membership_id' => $savedMember->getId()?->value,
             'ingredient_id' => $ingredient->id,

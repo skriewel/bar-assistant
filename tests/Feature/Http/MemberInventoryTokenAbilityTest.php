@@ -69,6 +69,41 @@ class MemberInventoryTokenAbilityTest extends TestCase
         )->assertForbidden();
     }
 
+    public function test_reading_inventories_repairs_membership_without_personal_inventory(): void
+    {
+        $membership = $this->setupBarMembership();
+        $user = $membership->user;
+
+        DB::table('member_inventories')
+            ->where('bar_membership_id', $membership->id)
+            ->delete();
+
+        $this->assertDatabaseMissing('member_inventories', [
+            'bar_membership_id' => $membership->id,
+        ]);
+
+        $token = $user->createToken(
+            'inventory-reader',
+            [AbilityEnum::InventoryRead->value],
+            Carbon::now()->addMonth(),
+        );
+
+        $headers = [
+            'Authorization' => 'Bearer '.$token->plainTextToken,
+            'Bar-Assistant-Bar-Id' => (string) $membership->bar_id,
+        ];
+
+        $this->getJson('/api/members/'.$user->id.'/inventories', $headers)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'My Shelf');
+
+        $this->assertDatabaseHas('member_inventories', [
+            'bar_membership_id' => $membership->id,
+            'name' => 'My Shelf',
+        ]);
+    }
+
     public function test_inventory_write_token_can_add_ingredients_but_cannot_read_inventory(): void
     {
         $membership = $this->setupBarMembership();

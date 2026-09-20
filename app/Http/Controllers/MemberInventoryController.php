@@ -309,6 +309,8 @@ class MemberInventoryController extends Controller
             abort(404);
         }
 
+        $barMembership->ensureDefaultInventory();
+
         return $barMembership;
     }
 

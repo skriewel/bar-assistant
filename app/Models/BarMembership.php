@@ -11,8 +11,17 @@ use Kami\Cocktail\Models\Collection as CocktailCollection;
 
 class BarMembership extends BaseModel
 {
+    public const DEFAULT_INVENTORY_NAME = 'My Shelf';
+
     /** @use \Illuminate\Database\Eloquent\Factories\HasFactory<\Database\Factories\BarMembershipFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::created(static function (self $membership): void {
+            $membership->ensureDefaultInventory();
+        });
+    }
 
     /**
      * @return BelongsTo<Bar, $this>
@@ -52,6 +61,21 @@ class BarMembership extends BaseModel
     public function memberInventories(): HasMany
     {
         return $this->hasMany(MemberInventory::class);
+    }
+
+    public function ensureDefaultInventory(): MemberInventory
+    {
+        $existingInventory = $this->memberInventories()
+            ->orderBy('id')
+            ->first();
+
+        if ($existingInventory !== null) {
+            return $existingInventory;
+        }
+
+        return $this->memberInventories()->create([
+            'name' => self::DEFAULT_INVENTORY_NAME,
+        ]);
     }
 
     /**
