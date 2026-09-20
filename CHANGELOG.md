@@ -1,4 +1,10 @@
 # v6.7.1
+## New
+- Added `inventory.read` and `inventory.write` personal access token abilities for member inventories
+    - `inventory.read` can list the authenticated user's inventories and their ingredients
+    - `inventory.write` can create, rename and delete inventories and add/remove inventory ingredients
+    - `GET /profile` accepts `inventory.read` so integrations can resolve the authenticated user ID
+
 ## Fixes
 - Correctly match unspecified cocktail ingredients when variants are in shelf
 
