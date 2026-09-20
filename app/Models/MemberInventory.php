@@ -11,6 +11,10 @@ class MemberInventory extends BaseModel
 {
     public $timestamps = false;
 
+    protected $fillable = [
+        'name',
+    ];
+
     /**
      * @return BelongsTo<BarMembership, $this>
      */
