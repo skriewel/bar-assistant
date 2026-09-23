@@ -1,3 +1,8 @@
+# v6.8.1
+## Fixes
+- Fixed server error when submitting empty tag
+- Fixed ingredient name encoding in markdown export
+
 # v6.8.0
 ## New
 - Added historical bar origin field to cocktail

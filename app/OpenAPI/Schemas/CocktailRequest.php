@@ -62,6 +62,17 @@ readonly class CocktailRequest
             $ingredients[] = CocktailIngredientRequest::fromArray($formIngredient);
         }
 
+        /** @var array<mixed> $formTags */
+        $formTags = $request->input('tags', []);
+        $tags = [];
+        foreach ($formTags as $formTag) {
+            if (!is_string($formTag) || trim($formTag) === '') {
+                continue;
+            }
+
+            $tags[] = $formTag;
+        }
+
         return new self(
             $request->input('name'),
             $request->input('instructions'),
@@ -72,7 +83,7 @@ readonly class CocktailRequest
             $request->input('garnish'),
             $request->filled('glass_id') ? $request->integer('glass_id') : null,
             $request->filled('cocktail_method_id') ? $request->integer('cocktail_method_id') : null,
-            $request->input('tags', []),
+            $tags,
             $ingredients,
             $request->input('images', []),
             $request->input('utensils', []),

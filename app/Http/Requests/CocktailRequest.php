@@ -29,6 +29,7 @@ class CocktailRequest extends FormRequest
         return [
             'name' => 'required',
             'instructions' => 'required',
+            'tags' => 'array',
             'ingredients' => 'array',
             'images' => [
                 'array',
