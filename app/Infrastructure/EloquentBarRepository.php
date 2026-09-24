@@ -21,6 +21,7 @@ use BarAssistant\Domain\Bar\BarRepository;
 use Kami\Cocktail\Models\Image as ModelImage;
 use BarAssistant\Domain\Bar\StandardDrinkRegion;
 use BarAssistant\Domain\Common\RecordTimestamps;
+use Brick\Money\Exception\UnknownCurrencyException;
 
 final class EloquentBarRepository implements BarRepository
 {
@@ -103,7 +104,7 @@ final class EloquentBarRepository implements BarRepository
         $barSettings = BarSettings::create(
             isInviteCodeEnabled: $model->invite_code !== null,
             defaultUnits: is_string($defaultUnits) ? Unit::from($defaultUnits) : null,
-            defaultCurrency: is_string($defaultCurrency) || is_int($defaultCurrency) ? Currency::of($defaultCurrency) : null,
+            defaultCurrency: is_string($defaultCurrency) || is_int($defaultCurrency) ? self::parseCurrency($defaultCurrency) : null,
             standardDrinkRegion: is_string($standardDrinkRegion) ? StandardDrinkRegion::tryFrom($standardDrinkRegion) : null,
         );
 
@@ -132,5 +133,14 @@ final class EloquentBarRepository implements BarRepository
         }
 
         return $bar;
+    }
+
+    private static function parseCurrency(string|int $code): ?Currency
+    {
+        try {
+            return Currency::of($code);
+        } catch (UnknownCurrencyException) {
+            return null;
+        }
     }
 }

@@ -49,6 +49,8 @@ readonly class CocktailRequest
         public ?int $year = null,
         #[OAT\Property(example: 'Jerry Thomas', property: 'author')]
         public ?string $author = null,
+        #[OAT\Property(example: 'American Bar, London', property: 'origin_bar')]
+        public ?string $originBar = null,
     ) {
     }
 
@@ -62,6 +64,17 @@ readonly class CocktailRequest
             $ingredients[] = CocktailIngredientRequest::fromArray($formIngredient);
         }
 
+        /** @var array<mixed> $formTags */
+        $formTags = $request->input('tags', []);
+        $tags = [];
+        foreach ($formTags as $formTag) {
+            if (!is_string($formTag) || trim($formTag) === '') {
+                continue;
+            }
+
+            $tags[] = $formTag;
+        }
+
         return new self(
             $request->input('name'),
             $request->input('instructions'),
@@ -73,13 +86,14 @@ readonly class CocktailRequest
             $request->input('garnish'),
             $request->filled('glass_id') ? $request->integer('glass_id') : null,
             $request->filled('cocktail_method_id') ? $request->integer('cocktail_method_id') : null,
-            $request->input('tags', []),
+            $tags,
             $ingredients,
             $request->input('images', []),
             $request->input('utensils', []),
             $request->filled('parent_cocktail_id') ? $request->integer('parent_cocktail_id') : null,
             $request->filled('year') ? $request->integer('year') : null,
             $request->has('author') ? $request->string('author')->value() : null,
+            $request->has('origin_bar') ? $request->string('origin_bar')->value() : null,
         );
     }
 }

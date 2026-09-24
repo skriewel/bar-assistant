@@ -63,6 +63,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
         new OAT\Property(property: 'varieties', type: 'array', items: new OAT\Items(type: CocktailBasicResource::class), description: 'List of varieties of this cocktail'),
         new OAT\Property(property: 'year', type: 'number', example: 2023, description: 'Cocktail recipe year', nullable: true),
         new OAT\Property(property: 'author', type: 'string', example: 'Jerry Thomas', description: 'Historical author of the cocktail recipe', nullable: true),
+        new OAT\Property(property: 'origin_bar', type: 'string', example: 'American Bar, London', description: 'Historical bar or venue where the cocktail was originally created', nullable: true),
     ],
     required: ['id', 'name', 'slug', 'garnish', 'description', 'instructions', 'source', 'publication', 'public_id', 'public_at', 'created_at', 'updated_at', 'abv']
 )]
@@ -76,7 +77,7 @@ class CocktailResource extends JsonResource
     public function toArray($request)
     {
         $barMembership = $request->user()->getBarMembership($this->bar_id);
-        $showRatingBreakdown = $request->routeIs('cocktails.show') && $barMembership?->user_role_id === 1;
+        $showRatingBreakdown = $request->routeIs('cocktails.show') && $request->user()?->isBarAdmin((int) $this->bar_id);
 
         return [
             'id' => $this->id,
@@ -135,6 +136,7 @@ class CocktailResource extends JsonResource
             'varieties' => CocktailBasicResource::collection($this->whenLoaded('cocktailVarieties')),
             'year' => $this->year,
             'author' => $this->author,
+            'origin_bar' => $this->origin_bar,
         ];
     }
 }

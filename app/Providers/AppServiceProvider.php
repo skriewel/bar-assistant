@@ -4,6 +4,7 @@ namespace Kami\Cocktail\Providers;
 
 use Throwable;
 use Illuminate\Support\Str;
+use Laravel\Paddle\Cashier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register()
     {
-        //
+        Cashier::ignoreRoutes();
     }
 
     /**

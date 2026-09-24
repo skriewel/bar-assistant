@@ -15,8 +15,8 @@ Route::middleware($tapApiMiddleware)->group(function () {
 
     Route::prefix('cocktails/{id}/taps')->group(function () {
         Route::get('/', [CocktailTapController::class, 'index'])->middleware(['ability:cocktails.read']);
-        Route::post('/', [CocktailTapController::class, 'store'])->middleware(['ability:cocktails.read']);
-        Route::patch('/{tapId}', [CocktailTapController::class, 'update'])->middleware(['ability:cocktails.read']);
-        Route::delete('/{tapId}', [CocktailTapController::class, 'destroy'])->middleware(['ability:cocktails.read']);
+        Route::post('/', [CocktailTapController::class, 'store'])->middleware(['ability:cocktails.write']);
+        Route::patch('/{tapId}', [CocktailTapController::class, 'update'])->middleware(['ability:cocktails.write']);
+        Route::delete('/{tapId}', [CocktailTapController::class, 'destroy'])->middleware(['ability:cocktails.write']);
     });
 });

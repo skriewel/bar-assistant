@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kami\Cocktail\Http\Filters;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Kami\Cocktail\Models\Cocktail;
 use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -46,6 +47,7 @@ final class CocktailQueryFilter extends QueryBuilder
                 AllowedFilter::exact('tag_id', 'tags.id'),
                 AllowedFilter::exact('created_user_id'),
                 AllowedFilter::exact('author'),
+                AllowedFilter::exact('origin_bar'),
                 AllowedFilter::exact('glass_id'),
                 AllowedFilter::exact('cocktail_method_id'),
                 AllowedFilter::callback('collection_id', function ($query, $value) use ($barMembership) {
@@ -133,15 +135,25 @@ final class CocktailQueryFilter extends QueryBuilder
                     }
                 }),
                 AllowedFilter::callback('tapped_after', function ($query, $value) use ($barMembership) {
+                    $date = Validator::make(
+                        ['date' => $value],
+                        ['date' => ['required', 'date_format:Y-m-d']],
+                    )->validate()['date'];
+
                     $query->whereRaw(
                         '(SELECT MAX(ct.tapped_on) FROM cocktail_taps ct WHERE ct.cocktail_id = cocktails.id AND ct.bar_membership_id = ?) >= ?',
-                        [$barMembership->id, (string) $value],
+                        [$barMembership->id, $date],
                     );
                 }),
                 AllowedFilter::callback('tapped_before', function ($query, $value) use ($barMembership) {
+                    $date = Validator::make(
+                        ['date' => $value],
+                        ['date' => ['required', 'date_format:Y-m-d']],
+                    )->validate()['date'];
+
                     $query->whereRaw(
                         '(SELECT MAX(ct.tapped_on) FROM cocktail_taps ct WHERE ct.cocktail_id = cocktails.id AND ct.bar_membership_id = ?) <= ?',
-                        [$barMembership->id, (string) $value],
+                        [$barMembership->id, $date],
                     );
                 }),
                 AllowedFilter::callback('never_tapped', function ($query, $value) use ($barMembership) {

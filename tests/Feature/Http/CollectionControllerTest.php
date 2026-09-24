@@ -7,6 +7,7 @@ namespace Tests\Feature\Http;
 use Tests\TestCase;
 use Kami\Cocktail\Models\Cocktail;
 use Kami\Cocktail\Models\Collection;
+use Kami\Cocktail\Models\User;
 use Kami\Cocktail\Models\BarMembership;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -159,6 +160,35 @@ class CollectionControllerTest extends TestCase
         ]);
 
         $response->assertNoContent();
+    }
+
+    public function test_shared_collection_allows_other_bar_member_to_sync_cocktails_but_not_manage_collection(): void
+    {
+        $collection = Collection::factory()->for($this->barMembership)->create([
+            'name' => 'Shared',
+            'is_bar_shared' => true,
+        ]);
+        $cocktail = Cocktail::factory()->for($this->barMembership->bar)->create();
+
+        $otherUser = User::factory()->create();
+        $otherUser->joinBarAs($this->barMembership->bar);
+        $this->actingAs($otherUser);
+
+        $this->putJson('/api/collections/' . $collection->id . '/cocktails', [
+            'cocktails' => [$cocktail->id],
+        ])->assertNoContent();
+
+        $this->assertDatabaseHas('collection_cocktail', [
+            'collection_id' => $collection->id,
+            'cocktail_id' => $cocktail->id,
+        ]);
+
+        $this->putJson('/api/collections/' . $collection->id, [
+            'name' => 'Renamed by other user',
+        ])->assertForbidden();
+
+        $this->deleteJson('/api/collections/' . $collection->id)
+            ->assertForbidden();
     }
 
     public function test_sync_cocktails_in_collection_fails_for_unknown_cocktails(): void

@@ -1,12 +1,18 @@
-# v6.7.1
+# v6.8.1
+## Fixes
+- Fixed server error when submitting empty tag
+- Fixed ingredient name encoding in markdown export
+
+# v6.8.0
 ## New
-- Added `inventory.read` and `inventory.write` personal access token abilities for member inventories
-    - `inventory.read` can list the authenticated user's inventories and their ingredients
-    - `inventory.write` can create, rename and delete inventories and add/remove inventory ingredients
-    - `GET /profile` accepts `inventory.read` so integrations can resolve the authenticated user ID
+- Added historical bar origin field to cocktail
+- Added ingredient reviews
 
 ## Fixes
 - Correctly match unspecified cocktail ingredients when variants are in shelf
+- Dilution percentage is now considered when calculating total cocktail volume
+- Fixed unable to change existing invalid currency code on bar
+- Fixed missing access check for cocktail in cocktail tags generation
 
 # v6.7.0
 ## New

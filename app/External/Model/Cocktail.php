@@ -42,6 +42,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
         public ?string $parentCocktailId = null,
         public ?int $year = null,
         public ?string $author = null,
+        public ?string $originBar = null,
     ) {
     }
 
@@ -71,6 +72,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
             $model->parentCocktail?->getExternalId(),
             $model->year,
             $model->author,
+            $model->origin_bar,
         );
     }
 
@@ -106,6 +108,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
             parentCocktailId: $sourceArray['parent_cocktail_id'] ?? null,
             year: $sourceArray['year'] ?? null,
             author: $sourceArray['author'] ?? null,
+            originBar: $sourceArray['origin_bar'] ?? null,
         );
     }
 
@@ -129,6 +132,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
             'parent_cocktail_id' => $this->parentCocktailId,
             'year' => $this->year,
             'author' => $this->author,
+            'origin_bar' => $this->originBar,
             'images' => array_map(fn ($model) => $model->toDataPackArray(), $this->images),
             'ingredients' => array_map(fn ($model) => $model->toDataPackArray(), $this->ingredients),
         ];
@@ -166,6 +170,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
             null,
             null,
             isset($sourceArray['author']) && is_string($sourceArray['author']) ? $sourceArray['author'] : null,
+            isset($sourceArray['origin_bar']) && is_string($sourceArray['origin_bar']) ? $sourceArray['origin_bar'] : null,
         );
     }
 
@@ -186,6 +191,7 @@ readonly class Cocktail implements SupportsDataPack, SupportsSchema4, SupportsJS
             'images' => array_map(fn ($model) => $model->toSchema4Array(), $this->images),
             'ingredients' => array_map(fn ($model) => $model->toSchema4Array(), $this->ingredients),
             'author' => $this->author,
+            'origin_bar' => $this->originBar,
         ];
     }
 

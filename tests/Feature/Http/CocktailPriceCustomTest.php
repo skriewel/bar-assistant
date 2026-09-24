@@ -64,4 +64,52 @@ class CocktailPriceCustomTest extends TestCase
         $response->assertJsonPath('data.0.prices_per_ingredient.0.price_per_use.price', 1.75);
         $response->assertJsonPath('data.0.total_price.price', 1.75);
     }
+    public function test_best_available_price_skips_categories_with_other_currencies(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        $ingredient = Ingredient::factory()->for($membership->bar)->create(['name' => 'Test spirit']);
+        $cocktail = Cocktail::factory()->recycle($membership->bar, $membership->user)->create();
+
+        CocktailIngredient::factory()->for($cocktail)->for($ingredient)->create([
+            'amount' => 50,
+            'amount_max' => null,
+            'units' => 'ml',
+            'optional' => false,
+        ]);
+
+        $eurCategory = PriceCategory::factory()->for($membership->bar)->create([
+            'name' => 'EUR source',
+            'currency' => 'EUR',
+        ]);
+        $usdCategory = PriceCategory::factory()->for($membership->bar)->create([
+            'name' => 'USD source',
+            'currency' => 'USD',
+        ]);
+
+        IngredientPrice::factory()->for($ingredient)->for($eurCategory, 'priceCategory')->create([
+            'price' => 3000,
+            'amount' => 1000,
+            'units' => 'ml',
+        ]);
+        IngredientPrice::factory()->for($ingredient)->for($usdCategory, 'priceCategory')->create([
+            'price' => 100,
+            'amount' => 1000,
+            'units' => 'ml',
+        ]);
+
+        $response = $this->getJson(
+            '/api/cocktails/' . $cocktail->id . '/prices',
+            ['Bar-Assistant-Bar-Id' => $membership->bar_id]
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.price_category.name', 'Best available');
+        $response->assertJsonPath('data.0.price_category.currency', 'EUR');
+        $response->assertJsonPath('data.0.prices_per_ingredient.0.price_category.name', 'EUR source');
+        $response->assertJsonPath('data.0.total_price.price', 1.5);
+    }
+
 }
