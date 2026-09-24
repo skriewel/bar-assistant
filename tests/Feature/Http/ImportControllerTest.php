@@ -44,6 +44,33 @@ class ImportControllerTest extends TestCase
         $response->assertHeader('Location');
     }
 
+    public function test_import_cocktail_preserves_publication(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        $payload = json_decode(
+            file_get_contents(base_path('tests/fixtures/external/recipe.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $payload['publication'] = 'The PDT Cocktail Book';
+
+        $response = $this->postJson('/api/import/cocktail', [
+            'source' => json_encode($payload, JSON_THROW_ON_ERROR),
+            'duplicate_actions' => 'none',
+        ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('cocktails', [
+            'bar_id' => $membership->bar_id,
+            'name' => 'Gin and Tonic',
+            'publication' => 'The PDT Cocktail Book',
+        ]);
+    }
+
     public function test_import_csv_ingredients_from_file(): void
     {
         $membership = $this->setupBarMembership();
