@@ -125,6 +125,23 @@ class IngredientControllerTest extends TestCase
         $response->assertJsonCount(4, 'data');
     }
 
+    public function test_name_exact_filter_does_not_match_prefixes(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        Ingredient::factory()->for($membership->bar)->create(['name' => 'Lime juice']);
+        Ingredient::factory()->for($membership->bar)->create(['name' => 'Lime Juice Cordial']);
+
+        $this->withHeader('Bar-Assistant-Bar-Id', (string) $membership->bar_id);
+
+        $response = $this->getJson('/api/ingredients?filter[name_exact]=Lime%20juice');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Lime juice');
+    }
+
     public function test_list_ingredients_response_filter_by_shopping_list(): void
     {
         $bar = $this->setupBar();
