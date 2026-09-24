@@ -29,6 +29,7 @@ class CocktailRequest extends FormRequest
         return [
             'name' => 'required',
             'instructions' => 'required',
+            'tags' => 'array',
             'ingredients' => 'array',
             'images' => [
                 'array',
@@ -46,6 +47,7 @@ class CocktailRequest extends FormRequest
             'ingredients.*.ingredient.substitutes.*.amount' => 'numeric',
             'ingredients.*.ingredient.substitutes.*.amount_max' => 'nullable|numeric',
             'author' => 'nullable|string',
+            'origin_bar' => 'nullable|string',
         ];
     }
 }

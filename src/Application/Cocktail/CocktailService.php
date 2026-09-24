@@ -65,6 +65,7 @@ final readonly class CocktailService
             methodId: $request->methodId ? new MethodId($request->methodId) : null,
             variantOf: $variantOf?->getId(),
             author: $request->author,
+            originBar: $request->originBar,
         );
 
         foreach ($request->ingredients as $requestIngredient) {
@@ -142,6 +143,7 @@ final readonly class CocktailService
             variantOf: $variantOf?->getId(),
             year: $request->year,
             author: $request->author,
+            originBar: $request->originBar,
         );
 
         $cocktail->removeAllIngredients();

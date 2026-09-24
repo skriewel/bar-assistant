@@ -10,6 +10,7 @@ use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 use Kami\Cocktail\Services\IngredientService;
+use BarAssistant\Domain\Review\Recommendation;
 
 /**
  * @extends \Spatie\QueryBuilder\QueryBuilder<Ingredient>
@@ -57,6 +58,39 @@ final class IngredientQueryFilter extends QueryBuilder
                 }),
                 AllowedFilter::callback('strength_max', function ($query, $value) {
                     $query->where('strength', '<=', $value);
+                }),
+                AllowedFilter::callback('user_rating_min', function ($query, $value) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    $query->where('user_rating', '>=', (float) $value);
+                }),
+                AllowedFilter::callback('average_rating_min', function ($query, $value) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    // AVG() has no column affinity, so the bound value must be
+                    // cast to REAL for SQLite to compare it numerically.
+                    $query->whereRaw('"average_rating" >= CAST(? AS REAL)', [(float) $value]);
+                }),
+                AllowedFilter::callback('review_recommendation', function ($query, $value) {
+                    $rawValues = is_array($value) ? $value : explode(',', (string) $value);
+
+                    $values = [];
+                    foreach ($rawValues as $rawValue) {
+                        $recommendation = Recommendation::tryFrom(trim((string) $rawValue));
+                        if ($recommendation !== null) {
+                            $values[] = $recommendation->value;
+                        }
+                    }
+
+                    if ($values === []) {
+                        return;
+                    }
+
+                    $query->whereHas('ingredientReviews', fn ($q) => $q->whereIn('recommendation', $values));
                 }),
                 AllowedFilter::callback('main_ingredients', function ($query, $value) use ($ingredientQuery, $barMembership) {
                     if ($value === true) {
@@ -110,6 +144,7 @@ final class IngredientQueryFilter extends QueryBuilder
             ->withCount('cocktails')
             ->filterByBar('ingredients')
             ->withInBarShelfColumn()
-            ->with('bar.shelfIngredients');
+            ->with('bar.shelfIngredients')
+            ->withRatings($this->request->user()->id);
     }
 }

@@ -68,6 +68,7 @@
                 "substitutes": []
             }
         ],
-        "author": null
+        "author": null,
+        "origin_bar": null
     }
 }

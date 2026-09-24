@@ -45,6 +45,9 @@ class IngredientController extends Controller
             new OAT\Property(property: 'bar_shelf', type: 'boolean', description: 'Show only ingredients that are on the bar shelf'),
             new OAT\Property(property: 'strength_min', type: 'float', description: 'Show only ingredients with strength greater than or equal to given value'),
             new OAT\Property(property: 'strength_max', type: 'float', description: 'Show only ingredients with strength less than or equal to given value'),
+            new OAT\Property(property: 'user_rating_min', type: 'float', description: 'Show only ingredients the requesting member has rated greater than or equal to given value'),
+            new OAT\Property(property: 'average_rating_min', type: 'float', description: 'Show only ingredients with an average rating greater than or equal to given value'),
+            new OAT\Property(property: 'review_recommendation', type: 'string', description: 'Show only ingredients with a review recommendation in the given comma separated list of `avoid`, `decent`, `recommend`'),
             new OAT\Property(property: 'main_ingredients', type: 'boolean', description: 'Show only ingredients that are used as main ingredients in cocktails'),
             new OAT\Property(property: 'complex', type: 'boolean', description: 'Show only ingredients that can be made with other ingredients'),
             new OAT\Property(property: 'parent_ingredient_id', type: 'string', description: 'Show only direct children of given ingredient. Use null as value to get ingredients without parent ingredient'),
@@ -56,10 +59,10 @@ class IngredientController extends Controller
     #[BAO\SuccessfulResponse(content: [
         new BAO\PaginateData(IngredientResource::class, [
             new OAT\Property(property: 'filters', type: 'object', required: ['origins', 'distilleries'], properties: [
-                new OAT\Property(property: 'origins', type: 'array', required: ['name'], items: new OAT\Items(type: 'object', properties: [
+                new OAT\Property(property: 'origins', type: 'array', items: new OAT\Items(type: 'object', required: ['name'], properties: [
                     new OAT\Property(property: 'name', type: 'string'),
                 ])),
-                new OAT\Property(property: 'distilleries', type: 'array', required: ['name'], items: new OAT\Items(type: 'object', properties: [
+                new OAT\Property(property: 'distilleries', type: 'array', items: new OAT\Items(type: 'object', required: ['name'], properties: [
                     new OAT\Property(property: 'name', type: 'string'),
                 ])),
             ]),
@@ -122,7 +125,9 @@ class IngredientController extends Controller
             'prices.priceCategory',
             'cocktailIngredientSubstitutes.cocktailIngredient.ingredient',
             'descendants',
-            'ancestors'
+            'ancestors',
+            'ratings',
+            'ingredientReviews.tasteDescriptors'
         )
             ->withCount('cocktails')
             ->where('id', $idOrSlug)

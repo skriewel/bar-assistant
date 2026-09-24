@@ -32,6 +32,7 @@ final readonly class UpdateCocktail
         public ?int $parentCocktailId,
         public ?int $year,
         public ?string $author = null,
+        public ?string $originBar = null,
     ) {
     }
 }
