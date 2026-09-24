@@ -69,7 +69,7 @@ class MemberInventoryTokenAbilityTest extends TestCase
         )->assertForbidden();
     }
 
-    public function test_reading_inventories_repairs_membership_without_personal_inventory(): void
+    public function test_reading_inventories_does_not_create_missing_inventory(): void
     {
         $membership = $this->setupBarMembership();
         $user = $membership->user;
@@ -77,10 +77,6 @@ class MemberInventoryTokenAbilityTest extends TestCase
         DB::table('member_inventories')
             ->where('bar_membership_id', $membership->id)
             ->delete();
-
-        $this->assertDatabaseMissing('member_inventories', [
-            'bar_membership_id' => $membership->id,
-        ]);
 
         $token = $user->createToken(
             'inventory-reader',
@@ -95,13 +91,39 @@ class MemberInventoryTokenAbilityTest extends TestCase
 
         $this->getJson('/api/members/'.$user->id.'/inventories', $headers)
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.name', 'My Shelf');
+            ->assertJsonCount(0, 'data');
 
+        $this->assertDatabaseMissing('member_inventories', [
+            'bar_membership_id' => $membership->id,
+        ]);
+    }
+
+    public function test_deleting_last_inventory_creates_replacement_default_inventory(): void
+    {
+        $membership = $this->setupBarMembership();
+        $user = $membership->user;
+        $inventoryId = $membership->memberInventories()->orderBy('id')->value('id');
+
+        $token = $user->createToken(
+            'inventory-writer',
+            [AbilityEnum::InventoryWrite->value],
+            Carbon::now()->addMonth(),
+        );
+
+        $headers = [
+            'Authorization' => 'Bearer '.$token->plainTextToken,
+            'Bar-Assistant-Bar-Id' => (string) $membership->bar_id,
+        ];
+
+        $this->deleteJson('/api/members/'.$user->id.'/inventories/'.$inventoryId, [], $headers)
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('member_inventories', ['id' => $inventoryId]);
         $this->assertDatabaseHas('member_inventories', [
             'bar_membership_id' => $membership->id,
             'name' => 'My Shelf',
         ]);
+        $this->assertSame(1, $membership->memberInventories()->count());
     }
 
     public function test_inventory_write_token_can_add_ingredients_but_cannot_read_inventory(): void
