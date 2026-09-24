@@ -46,6 +46,20 @@ class CocktailTapControllerTest extends TestCase
             ->assertNoContent();
     }
 
+    public function test_invalid_tap_date_filters_are_rejected(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user, abilities: ['cocktails.read']);
+
+        $headers = ['Bar-Assistant-Bar-Id' => (string) $membership->bar_id];
+
+        $this->getJson('/api/cocktails?filter[tapped_after]=not-a-date', $headers)
+            ->assertUnprocessable();
+
+        $this->getJson('/api/cocktails?filter[tapped_before]=2026-99-99', $headers)
+            ->assertUnprocessable();
+    }
+
     public function test_taps_are_isolated_by_bar_membership(): void
     {
         $membership = $this->setupBarMembership();
