@@ -131,6 +131,11 @@ class MemberInventoryController extends Controller
             inventoryId: $memberInventory->id,
         ));
 
+        $barMembership = $request->user()->getBarMembership(bar()->id);
+        if ($barMembership !== null && ! $barMembership->memberInventories()->exists()) {
+            $barMembership->ensureDefaultInventory();
+        }
+
         return new Response(null, 204);
     }
 
@@ -308,8 +313,6 @@ class MemberInventoryController extends Controller
         if ($barMembership === null) {
             abort(404);
         }
-
-        $barMembership->ensureDefaultInventory();
 
         return $barMembership;
     }
