@@ -538,14 +538,9 @@ class CocktailController extends Controller
             return CocktailPriceResource::collection([]);
         }
 
-        $currencies = $categories->pluck('currency')->filter()->unique()->values();
-        if ($currencies->count() !== 1) {
-            abort(422, 'Best available pricing requires all price categories in a bar to use the same currency.');
-        }
-
-        $currency = $currencies->first();
+        $currency = $categories->pluck('currency')->filter()->first();
         if (!is_string($currency)) {
-            abort(422, 'Unable to determine currency for best available pricing.');
+            return CocktailPriceResource::collection([]);
         }
 
         $bestAvailableCategory = new PriceCategory();
