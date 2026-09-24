@@ -33,7 +33,7 @@ final class IngredientQueryFilter extends QueryBuilder
                     }
                 }),
                 AllowedFilter::custom('name', new FilterNameSearch()),
-                AllowedFilter::beginsWithStrict('name_exact', 'name'),
+                AllowedFilter::exact('name_exact', 'name'),
                 AllowedFilter::exact('origin')->ignore(''),
                 AllowedFilter::exact('distillery')->ignore(''),
                 AllowedFilter::exact('created_user_id'),
