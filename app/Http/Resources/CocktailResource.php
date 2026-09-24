@@ -76,7 +76,7 @@ class CocktailResource extends JsonResource
     public function toArray($request)
     {
         $barMembership = $request->user()->getBarMembership($this->bar_id);
-        $showRatingBreakdown = $request->routeIs('cocktails.show') && $barMembership?->user_role_id === 1;
+        $showRatingBreakdown = $request->routeIs('cocktails.show') && $request->user()?->isBarAdmin((int) $this->bar_id);
 
         return [
             'id' => $this->id,
