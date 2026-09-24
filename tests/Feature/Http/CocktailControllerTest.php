@@ -72,6 +72,30 @@ class CocktailControllerTest extends TestCase
         $response->assertJsonPath('meta.last_page', 11);
     }
 
+    public function test_cocktails_can_be_filtered_by_publication(): void
+    {
+        $membership = $this->setupBarMembership();
+        $this->actingAs($membership->user);
+
+        Cocktail::factory()->recycle($membership->bar, $membership->user)->create([
+            'name' => 'PDT Drink',
+            'publication' => 'The PDT Cocktail Book',
+        ]);
+        Cocktail::factory()->recycle($membership->bar, $membership->user)->create([
+            'name' => 'Other Drink',
+            'publication' => 'Other Book',
+        ]);
+
+        $response = $this->getJson(
+            '/api/cocktails?filter[publication]=PDT',
+            ['Bar-Assistant-Bar-Id' => $membership->bar_id],
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'PDT Drink');
+    }
+
     public function test_cocktails_response_with_filters(): void
     {
         $membership = $this->setupBarMembership();
