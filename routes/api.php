@@ -280,7 +280,7 @@ Route::middleware($apiMiddleware)->group(function () {
             Route::get('/ingredients/{idOrSlug}/extra', [BarInventoryController::class, 'extra'])->middleware(['ability:*']);
         });
 
-        Route::prefix('/{id}/stats')->middleware(['ability:*'])->group(function () {
+        Route::prefix('/{id}/stats')->group(function () {
             Route::get('/totals', [StatsController::class, 'totals'])->middleware(['ability:bars.read']);
             Route::get('/taste', [StatsController::class, 'taste'])->middleware(['ability:bars.read']);
             Route::get('/ingredient-distribution', [StatsController::class, 'ingredientDistribution'])->middleware(['ability:bars.read']);
